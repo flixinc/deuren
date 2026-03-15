@@ -435,7 +435,7 @@ async function init(){
   }
   setLoad(true);
   try{
-    const proj=await supa(`projecten?m_nummer=eq.${encodeURIComponent(S.mNummer)}&limit=1`);
+    const proj=await supa(`projecten?nummer=eq.${encodeURIComponent(S.mNummer)}&limit=1`);
     S.project=proj?.[0]||{m_nummer:S.mNummer};
     S.deuren=(await supa(`deuren?m_nummer=eq.${encodeURIComponent(S.mNummer)}&order=deur_nr.asc`))||[];
     renderList();show('list');
