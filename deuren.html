@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Deuren Inmeten · Compier</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0f0f0f;--panel:#181818;--panel2:#222222;--border:#2a2a2a;
+  --accent:#E8611A;--accent2:#4caf6e;--blue:#4a90d9;--dim:#666666;--text:#e8e8e8;
+  --label:#888888;--red:#c0392b;--orange:#E8611A;
+}
+body{background:var(--bg);font-family:'IBM Plex Sans',sans-serif;color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:68px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{width:30px;height:30px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);user-select:none;transition:all .15s;}
+.back-btn:hover{border-color:var(--accent);color:var(--text);}
+.project-info{display:flex;flex-direction:column;gap:3px;}
+.project-name{font-size:14px;font-weight:600;letter-spacing:-.01em;}
+.project-id{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.04em;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.nav-arrows{display:flex;gap:4px;}
+.nav-btn{width:30px;height:30px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:11px;user-select:none;transition:all .15s;}
+.nav-btn:hover:not(.disabled){border-color:var(--accent);color:var(--text);}
+.nav-btn.disabled{opacity:.3;pointer-events:none;}
+.status-chip{font-size:11px;font-weight:500;padding:3px 10px;border-radius:4px;}
+.status-open{background:rgba(102,102,102,.1);color:var(--dim);border:1px solid rgba(102,102,102,.2);}
+.status-ingemeten{background:rgba(76,175,110,.1);color:var(--accent2);border:1px solid rgba(76,175,110,.25);}
+.save-btn{font-size:12px;font-weight:600;padding:6px 16px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer;transition:opacity .15s;letter-spacing:.01em;}
+.save-btn:hover{opacity:.88;}
+.save-btn:disabled{opacity:.5;cursor:not-allowed;}
+.deur-naam-input{background:none;border:none;outline:none;font-size:14px;font-weight:600;color:var(--text);font-family:'IBM Plex Sans',sans-serif;width:180px;border-bottom:1px solid transparent;transition:border-color .15s;letter-spacing:-.01em;}
+.deur-naam-input:focus{border-bottom-color:var(--accent);}
+
+/* SCREENS */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;}
+.screen.active{display:flex;}
+
+/* SETUP */
+.setup-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
+.setup-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:28px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:20px;}
+.setup-title{font-size:15px;font-weight:600;}
+.setup-sub{font-size:12px;color:var(--dim);line-height:1.6;}
+.setup-field{display:flex;flex-direction:column;gap:6px;}
+.setup-lbl{font-size:10px;color:var(--label);font-weight:600;text-transform:uppercase;letter-spacing:.08em;}
+.setup-input{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);outline:none;width:100%;transition:border-color .15s;}
+.setup-input:focus{border-color:var(--accent);}
+.setup-btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.01em;}
+.setup-error{font-size:11px;color:var(--red);}
+
+/* LIST */
+.list-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.deur-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;}
+.deur-card:hover{border-color:var(--accent);}
+.deur-nr{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;flex-shrink:0;min-width:28px;text-align:center;}
+.deur-info{flex:1;display:flex;flex-direction:column;gap:2px;}
+.deur-naam-lbl{font-size:13px;font-weight:500;}
+.deur-maten{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);}
+.deur-arrow{color:var(--dim);font-size:16px;flex-shrink:0;}
+.chip-sm{font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0;}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(232,97,26,.05);border:1.5px dashed rgba(232,97,26,.25);border-radius:6px;padding:16px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:500;transition:all .15s;}
+.add-btn:hover{background:rgba(232,97,26,.1);border-color:var(--accent);}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--dim);padding:40px;text-align:center;}
+.empty-state p{font-size:13px;line-height:1.6;}
+.list-count{font-size:11px;color:var(--dim);font-family:'IBM Plex Mono',monospace;}
+
+/* MEASURE */
+.main{display:flex;flex:1;overflow:hidden;min-height:0;}
+.sidebar{width:215px;background:var(--panel);border-right:1px solid var(--border);padding:14px 12px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex-shrink:0;}
+.sec-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field{display:flex;align-items:center;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;gap:6px;transition:border-color .15s;}
+.field:focus-within{border-color:var(--accent);}
+.field-lbl{font-size:11px;color:var(--label);flex:1;white-space:nowrap;}
+.field input[type=number]{background:none;border:none;outline:none;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--text);width:56px;text-align:right;}
+.field .unit{font-size:10px;color:var(--dim);}
+hr.div{border:none;border-top:1px solid var(--border);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 2px;}
+.pill-toggle{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:2px;width:100%;}
+.pill-opt{font-size:11px;font-weight:500;padding:5px 4px;border-radius:4px;color:var(--dim);transition:all .15s;user-select:none;flex:1;text-align:center;cursor:pointer;}
+.pill-opt.active{background:var(--accent);color:#fff;}
+.onoff-toggle{width:34px;height:20px;border-radius:10px;background:var(--accent);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.onoff-toggle::after{content:'';position:absolute;top:3px;left:17px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s;}
+.onoff-toggle.off{background:var(--border);}
+.onoff-toggle.off::after{left:3px;}
+.canvas-area{flex:1;background:var(--bg);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.18;}
+#door-svg{width:100%;height:100%;z-index:1;position:relative;}
+.right-panel{width:188px;background:var(--panel);border-left:1px solid var(--border);padding:14px 12px;display:flex;flex-direction:column;gap:9px;overflow-y:auto;flex-shrink:0;}
+.bkd-card{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:9px 11px;display:flex;flex-direction:column;gap:3px;transition:border-color .15s;}
+.bkd-card:focus-within{border-color:#4caf6e;}
+.bkd-header{display:flex;align-items:center;gap:6px;}
+.bkd-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.bkd-name{font-size:10px;color:var(--label);font-weight:600;letter-spacing:.05em;}
+.bkd-input-row{display:flex;align-items:baseline;gap:4px;}
+.bkd-input{background:none;border:none;outline:none;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;color:var(--text);width:84px;}
+.bkd-unit{font-size:11px;color:var(--dim);}
+.bkd-desc{font-size:10px;color:var(--dim);}
+.bottombar{height:34px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:20px;flex-shrink:0;}
+.stat{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);}
+.stat span{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);font-weight:500;}
+.zoom-controls{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.zoom-btn{width:22px;height:22px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);font-size:13px;user-select:none;}
+.zoom-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);width:34px;text-align:center;}
+
+/* TOAST */
+.toast{position:fixed;bottom:48px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 18px;font-size:12px;font-weight:500;color:var(--text);opacity:0;transition:all .2s;pointer-events:none;z-index:200;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:rgba(76,175,110,.4);color:var(--accent2);}
+.toast.error{border-color:rgba(192,57,43,.4);color:var(--red);}
+
+/* LOADER */
+.loader{position:fixed;inset:0;background:rgba(15,17,23,.65);display:flex;align-items:center;justify-content:center;z-index:300;opacity:0;pointer-events:none;transition:opacity .2s;}
+.loader.show{opacity:1;pointer-events:all;}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="project-info">
+        <div class="project-name">Deuren Inmeten</div>
+        <div class="project-id">Compier · Configuratie</div>
+      </div>
+    </div>
+  </div>
+  <div class="setup-body">
+    <div class="setup-card">
+      <div>
+        <div class="setup-title">Supabase configureren</div>
+        <div class="setup-sub" style="margin-top:6px">Eenmalig instellen. Zelfde gegevens als het Compier dashboard.</div>
+      </div>
+      <div class="setup-field">
+        <div class="setup-lbl">Supabase URL</div>
+        <input class="setup-input" id="inp-url" placeholder="https://xxx.supabase.co" autocomplete="off">
+      </div>
+      <div class="setup-field">
+        <div class="setup-lbl">Anon Key</div>
+        <input class="setup-input" id="inp-key" placeholder="eyJ..." autocomplete="off">
+      </div>
+      <div class="setup-field" id="mnr-field" style="display:none">
+        <div class="setup-lbl">M-nummer</div>
+        <input class="setup-input" id="inp-mnr" placeholder="M2343332" autocomplete="off" style="text-transform:uppercase">
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">Normaal automatisch meegegeven vanuit het dashboard.</div>
+      </div>
+      <div id="setup-error" class="setup-error" style="display:none"></div>
+      <button class="setup-btn" onclick="saveSetup()">Opslaan &amp; starten</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIST -->
+<div id="screen-list" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="back-btn" onclick="goBack()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6L8 10" stroke="#9ca3b0" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="project-info">
+        <div class="project-name" id="list-naam">Laden...</div>
+        <div class="project-id" id="list-id">—</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="list-count" id="list-count"></div>
+    </div>
+  </div>
+  <div class="list-body" id="list-body"></div>
+</div>
+
+<!-- MEASURE -->
+<div id="screen-measure" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="back-btn" onclick="goToList()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6L8 10" stroke="#9ca3b0" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="project-info">
+        <input class="deur-naam-input" id="deur-naam-input" value="Deur 1" oninput="onNaamChange()">
+        <div class="project-id" id="measure-meta">—</div>
+      </div>
+      <div class="nav-arrows">
+        <div class="nav-btn disabled" id="nav-prev" onclick="navDeur(-1)">∧</div>
+        <div class="nav-btn disabled" id="nav-next" onclick="navDeur(1)">∨</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-chip status-open" id="measure-status">Open</div>
+      <button class="save-btn" id="save-btn" onclick="saveDeur()">Opslaan</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div>
+        <div class="sec-label">Draairichting</div>
+        <div class="pill-toggle">
+          <div class="pill-opt" id="pill-l" onclick="setDraai('links')">Links</div>
+          <div class="pill-opt active" id="pill-r" onclick="setDraai('rechts')">Rechts</div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-label">Arm aan</div>
+        <div class="pill-toggle">
+          <div class="pill-opt active" id="arm-hang"  onclick="setArm('hang')">Hangzijde</div>
+          <div class="pill-opt"        id="arm-sluit" onclick="setArm('sluit')">Sluitzijde</div>
+          <div class="pill-opt"        id="arm-beide" onclick="setArm('beide')">Allebei</div>
+        </div>
+      </div>
+      <hr class="div">
+      <div>
+        <div class="sec-label">Deur</div>
+        <div class="field-group">
+          <div class="field"><span class="field-lbl">Breedte</span><input id="kW" type="number" value="975" oninput="redraw()"><span class="unit">mm</span></div>
+          <div class="field"><span class="field-lbl">Hoogte</span><input id="kH" type="number" value="2124" oninput="redraw()"><span class="unit">mm</span></div>
+        </div>
+      </div>
+      <hr class="div">
+      <div>
+        <div class="toggle-row">
+          <span class="sec-label" style="margin:0">Glassparing</span>
+          <div class="onoff-toggle" id="glas-toggle" onclick="toggleGlas()"></div>
+        </div>
+        <div id="glas-fields" style="margin-top:8px;">
+          <div class="field-group">
+            <div class="field"><span class="field-lbl">Dagmaat bov.</span><input id="dmBov" type="number" value="140" oninput="redraw()"><span class="unit">mm</span></div>
+            <div class="field"><span class="field-lbl">Offset X</span><input id="pOffX" type="number" value="140" oninput="redraw()"><span class="unit">mm</span></div>
+            <div class="field"><span class="field-lbl">Breedte</span><input id="pW" type="number" value="240" oninput="redraw()"><span class="unit">mm</span></div>
+            <div class="field"><span class="field-lbl">Hoogte</span><input id="pH" type="number" value="1385" oninput="redraw()"><span class="unit">mm</span></div>
+          </div>
+        </div>
+      </div>
+      <hr class="div">
+      <div>
+        <div class="sec-label">Hart kruk (slot)</div>
+        <div class="field-group">
+          <div class="field"><span class="field-lbl">Hoogte</span><input id="okdVal" type="number" value="1015" oninput="redraw()"><span class="unit">mm</span></div>
+          <div class="field"><span class="field-lbl">Doornmaat</span><input id="doornVal" type="number" value="72" max="100" oninput="this.value=Math.min(100,this.value);redraw()"><span class="unit">mm</span></div>
+          <div class="field"><span class="field-lbl">PC maat</span><input id="pcVal" type="number" value="72" oninput="redraw()"><span class="unit">mm</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-area">
+      <div class="grid-bg"></div>
+      <svg id="door-svg" viewBox="0 0 480 540" preserveAspectRatio="xMidYMid meet">
+        <line id="dh-total" stroke="#f87171" stroke-width="1" opacity=".85"/>
+        <line id="dh-tick-t" stroke="#f87171" stroke-width="1" opacity=".85"/>
+        <line id="dh-tick-b" stroke="#f87171" stroke-width="1" opacity=".85"/>
+        <text id="dh-total-txt" fill="#f87171" font-size="10" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".95"/>
+        <line id="dh-bov" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dh-bov-t1" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dh-bov-t2" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <text id="dh-bov-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="end" opacity=".9"/>
+        <line id="dh-pan" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dh-pan-t2" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <text id="dh-pan-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="end" opacity=".9"/>
+        <line id="dh-rem" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dh-rem-t2" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <text id="dh-rem-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="end" opacity=".9"/>
+        <line id="dw-total" stroke="#f87171" stroke-width="1" opacity=".85"/>
+        <line id="dw-tk-l" stroke="#f87171" stroke-width="1" opacity=".85"/>
+        <line id="dw-tk-r" stroke="#f87171" stroke-width="1" opacity=".85"/>
+        <text id="dw-total-txt" fill="#f87171" font-size="10" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".95"/>
+        <line id="dw-off" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dw-off-t1" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dw-off-t2" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <text id="dw-off-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".9"/>
+        <line id="dw-pan" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dw-pan-t2" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <text id="dw-pan-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".9"/>
+        <line id="dw-rem" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <line id="dw-rem-t2" stroke="#fb923c" stroke-width="1" opacity=".7"/>
+        <text id="dw-rem-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".9"/>
+        <rect id="deur-outer" fill="none" stroke="#4a90d9" stroke-width="2.5" rx="2" opacity=".9"/>
+        <rect id="glassparing" fill="rgba(74,144,217,.08)" stroke="#4a90d9" stroke-width="1.5" stroke-dasharray="5 3" rx="2" visibility="hidden"/>
+        <line id="doorn-line" stroke="#fb923c" stroke-width="1.2" opacity=".7"/>
+        <line id="doorn-tick" stroke="#fb923c" stroke-width="1.5" opacity=".7"/>
+        <text id="doorn-txt" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".85"/>
+        <circle id="kruk-dot" r="4" fill="none" stroke="#fb923c" stroke-width="1.5" opacity="0"/>
+        <circle id="kruk-dot2" r="2" fill="#fb923c" opacity="0"/>
+        <line id="pc-line" stroke="#9ca3b0" stroke-width="1.2" stroke-dasharray="3 2" opacity=".8"/>
+        <line id="pc-tick" stroke="#9ca3b0" stroke-width="1.5" opacity=".8"/>
+        <line id="pc-tick2" stroke="#9ca3b0" stroke-width="1.5" opacity=".8"/>
+        <text id="pc-txt" fill="#9ca3b0" font-size="9" font-family="IBM Plex Mono,monospace" opacity=".9"/>
+        <path id="cil-path" fill="rgba(156,163,176,.1)" stroke="#9ca3b0" stroke-width="1.5" stroke-linejoin="round" opacity=".9" visibility="hidden"/>
+        <rect id="sch-r0" width="10" height="16" rx="2" fill="rgba(76,175,110,.25)" stroke="#4caf6e" stroke-width="1.5"/>
+        <text id="sch-t0" fill="#4caf6e" font-size="9" font-family="IBM Plex Mono,monospace" dominant-baseline="middle" opacity=".9"/>
+        <rect id="sch-r1" width="10" height="16" rx="2" fill="rgba(76,175,110,.25)" stroke="#4caf6e" stroke-width="1.5"/>
+        <text id="sch-t1" fill="#4caf6e" font-size="9" font-family="IBM Plex Mono,monospace" dominant-baseline="middle" opacity=".9"/>
+        <rect id="sch-r2" width="10" height="16" rx="2" fill="rgba(251,146,60,.2)" stroke="#fb923c" stroke-width="1.5"/>
+        <text id="sch-t2" fill="#fb923c" font-size="9" font-family="IBM Plex Mono,monospace" dominant-baseline="middle" opacity=".9"/>
+        <rect id="sch-r3" width="10" height="16" rx="2" fill="rgba(248,113,113,.2)" stroke="#f87171" stroke-width="1.5"/>
+        <text id="sch-t3" fill="#f87171" font-size="9" font-family="IBM Plex Mono,monospace" dominant-baseline="middle" opacity=".9"/>
+      </svg>
+    </div>
+
+    <div class="right-panel">
+      <div class="sec-label">Scharnierkroping / BKD</div>
+      <hr class="div" style="margin:0 0 4px;">
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#38d9a9"></div><span class="bkd-name">BKD 1</span></div>
+        <div class="bkd-input-row"><input class="bkd-input" id="bkd1" type="number" value="142" oninput="redraw()"><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">Bovenkant</div>
+      </div>
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#38d9a9"></div><span class="bkd-name">BKD 2</span></div>
+        <div class="bkd-input-row"><input class="bkd-input" id="bkd2" type="number" value="391" oninput="redraw()"><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">2e scharnier</div>
+      </div>
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#fb923c"></div><span class="bkd-name">BKD 3</span></div>
+        <div class="bkd-input-row"><input class="bkd-input" id="bkd3" type="number" value="1006" oninput="redraw()"><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">Midden</div>
+      </div>
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#f87171"></div><span class="bkd-name">BKD 4</span></div>
+        <div class="bkd-input-row"><input class="bkd-input" id="bkd4" type="number" value="1872" oninput="redraw()"><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">Onderkant</div>
+      </div>
+      <hr class="div">
+      <div class="sec-label">Hart kruk</div>
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#fb923c"></div><span class="bkd-name">HK hoogte</span></div>
+        <div class="bkd-input-row"><span id="hk-display" style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;">1015</span><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">Hoogte slot</div>
+      </div>
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#fb923c"></div><span class="bkd-name">Doornmaat</span></div>
+        <div class="bkd-input-row"><span id="doorn-display" style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;">72</span><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">Vanuit sluitzijde · max 100</div>
+      </div>
+      <div class="bkd-card">
+        <div class="bkd-header"><div class="bkd-dot" style="background:#9ca3b0"></div><span class="bkd-name">PC maat</span></div>
+        <div class="bkd-input-row"><span id="pc-display" style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;">72</span><span class="bkd-unit">mm</span></div>
+        <div class="bkd-desc">Hart kruk → cilindergat</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <div class="stat">Deur <span id="st-deur">975 × 2124</span></div>
+    <div class="stat">Draairichting <span id="st-draai">Rechts</span></div>
+    <div class="stat">Glassparing <span id="st-glas">Ja</span></div>
+    <div class="zoom-controls">
+      <div class="zoom-btn" onclick="setZoom(zoomLvl-10)">−</div>
+      <div class="zoom-val" id="zoom-lbl">100%</div>
+      <div class="zoom-btn" onclick="setZoom(zoomLvl+10)">+</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loader" id="loader"><div class="spinner"></div></div>
+
+<script>
+// STATE
+const S={mNummer:null,project:null,deuren:[],activeDeur:null,activeIdx:0};
+let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang';
+const Z={x0:75,y0:18,x1:310,y1:468};
+
+// UTILS
+const G=id=>document.getElementById(id);
+const vv=(id,def)=>{const n=parseFloat(G(id)?.value);return!isNaN(n)?n:def;};
+const sa=(id,attrs)=>{const el=G(id);if(!el)return;for(const[k,val]of Object.entries(attrs))el.setAttribute(k,typeof val==='number'?val.toFixed(2):val);};
+const tx=(id,t)=>{const e=G(id);if(e)e.textContent=t;};
+const cl=id=>sa(id,{x1:0,y1:0,x2:0,y2:0});
+const ln=(id,x1,y1,x2,y2)=>sa(id,{x1,y1,x2,y2});
+
+// LOADER
+const setLoad=on=>G('loader').classList.toggle('show',on);
+
+// TOAST
+let _t;
+function toast(msg,type=''){
+  const t=G('toast');t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  clearTimeout(_t);_t=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// SCREENS
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  G('screen-'+id).classList.add('active');
+}
+
+// SUPABASE
+async function supa(path,method='GET',body=null){
+  const url=localStorage.getItem('supabaseUrl');
+  const key=localStorage.getItem('supabaseKey');
+  const h={'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'};
+  if(method==='POST'||method==='PATCH')h['Prefer']='return=representation';
+  const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:h,body:body?JSON.stringify(body):null});
+  if(!r.ok)throw new Error(await r.text());
+  const txt=await r.text();return txt?JSON.parse(txt):null;
+}
+
+// SETUP
+function saveSetup(){
+  const url=G('inp-url').value.trim(),key=G('inp-key').value.trim();
+  const mnr=G('inp-mnr').value.trim().toUpperCase();
+  const err=G('setup-error');
+  if(!url||!key){err.textContent='Vul URL en sleutel in';err.style.display='';return;}
+  err.style.display='none';
+  localStorage.setItem('supabaseUrl',url);localStorage.setItem('supabaseKey',key);
+  // M-nummer handmatig ingevuld -> URL updaten zonder reload
+  if(mnr){
+    try{
+      const p=new URLSearchParams(location.search);
+      p.set('m',mnr);
+      history.replaceState(null,'',location.pathname+'?'+p.toString());
+    }catch(e){/* srcdoc preview, geen probleem */}
+    S.mNummer=mnr;
+  }
+  init();
+}
+
+// INIT
+async function init(){
+  const params=new URLSearchParams(location.search);
+  S.mNummer=params.get('m');
+  const url=localStorage.getItem('supabaseUrl'),key=localStorage.getItem('supabaseKey');
+  if(url)G('inp-url').value=url;if(key)G('inp-key').value=key;
+  if(!url||!key){show('setup');return;}
+  if(!S.mNummer){
+    G('mnr-field').style.display='';show('setup');return;
+  }
+  setLoad(true);
+  try{
+    const proj=await supa(`projecten?m_nummer=eq.${encodeURIComponent(S.mNummer)}&limit=1`);
+    S.project=proj?.[0]||{m_nummer:S.mNummer};
+    S.deuren=(await supa(`deuren?m_nummer=eq.${encodeURIComponent(S.mNummer)}&order=deur_nr.asc`))||[];
+    renderList();show('list');
+  }catch(e){
+    G('setup-error').textContent='Verbinding mislukt: '+e.message;
+    G('setup-error').style.display='';show('setup');
+  }finally{setLoad(false);}
+}
+
+// PROJECT NAAM
+function projNaam(){
+  const p=S.project;if(!p)return S.mNummer;
+  return p.naam||p.project_naam||p.omschrijving||p.title||S.mNummer;
+}
+
+// RENDER LIST
+function renderList(){
+  tx('list-naam',projNaam());tx('list-id',S.mNummer);
+  const total=S.deuren.length,ing=S.deuren.filter(d=>d.status==='ingemeten').length;
+  tx('list-count',total>0?`${ing}/${total} ingemeten`:'');
+  const body=G('list-body');body.innerHTML='';
+  if(total===0){
+    const e=document.createElement('div');e.className='empty-state';
+    e.innerHTML='<p>Nog geen deuren voor dit project.<br>Voeg er een toe om te beginnen.</p>';
+    body.appendChild(e);
+  }else{
+    S.deuren.forEach((d,i)=>{
+      const card=document.createElement('div');card.className='deur-card';
+      const ing=d.status==='ingemeten';
+      const maten=d.breedte&&d.hoogte?`${d.breedte} × ${d.hoogte} mm · ${d.draairichting||'rechts'}`:'—';
+      card.innerHTML=`
+        <div class="deur-nr">${d.deur_nr}</div>
+        <div class="deur-info">
+          <div class="deur-naam-lbl">${d.naam||'Deur '+d.deur_nr}</div>
+          <div class="deur-maten">${maten}</div>
+        </div>
+        <div class="status-chip chip-sm ${ing?'status-ingemeten':'status-open'}">${ing?'Ingemeten':'Open'}</div>
+        <div class="deur-arrow">›</div>`;
+      card.onclick=()=>openMeasure(i);body.appendChild(card);
+    });
+  }
+  const btn=document.createElement('div');btn.className='add-btn';
+  btn.innerHTML='<span style="font-size:18px;line-height:1;margin-right:2px">+</span> Deur toevoegen';
+  btn.onclick=addDeur;body.appendChild(btn);
+}
+
+// ADD DEUR
+async function addDeur(){
+  setLoad(true);
+  try{
+    const nr=S.deuren.length+1;
+    const result=await supa('deuren','POST',{
+      m_nummer:S.mNummer,deur_nr:nr,naam:`Deur ${nr}`,status:'open',
+      breedte:975,hoogte:2124,draairichting:'rechts',arm:'hang',glas_aan:true,
+      dm_bov:140,off_x:140,glas_breedte:240,glas_hoogte:1385,
+      hk_hoogte:1015,doornmaat:72,pc_maat:72,bkd1:142,bkd2:391,bkd3:1006,bkd4:1872
+    });
+    const nd=Array.isArray(result)?result[0]:result;
+    S.deuren.push(nd);openMeasure(S.deuren.length-1);
+  }catch(e){toast('Fout bij toevoegen: '+e.message,'error');}
+  finally{setLoad(false);}
+}
+
+// OPEN MEASURE
+function openMeasure(idx){
+  S.activeIdx=idx;S.activeDeur=S.deuren[idx];
+  populateForm(S.activeDeur);updateTopbar();show('measure');redraw();
+}
+
+function updateTopbar(){
+  const d=S.activeDeur;
+  G('deur-naam-input').value=d.naam||`Deur ${d.deur_nr}`;
+  tx('measure-meta',`${S.mNummer} · Deur ${d.deur_nr}/${S.deuren.length}`);
+  const chip=G('measure-status');
+  chip.className='status-chip '+(d.status==='ingemeten'?'status-ingemeten':'status-open');
+  chip.textContent=d.status==='ingemeten'?'Ingemeten':'Open';
+  G('nav-prev').classList.toggle('disabled',S.activeIdx===0);
+  G('nav-next').classList.toggle('disabled',S.activeIdx>=S.deuren.length-1);
+}
+
+function navDeur(dir){
+  const next=S.activeIdx+dir;
+  if(next<0||next>=S.deuren.length)return;
+  autoSave().then(()=>openMeasure(next));
+}
+
+// POPULATE FORM
+function populateForm(d){
+  const set=(id,val,def)=>{const el=G(id);if(el)el.value=val??def;};
+  set('kW',d.breedte,975);set('kH',d.hoogte,2124);
+  set('dmBov',d.dm_bov,140);set('pOffX',d.off_x,140);
+  set('pW',d.glas_breedte,240);set('pH',d.glas_hoogte,1385);
+  set('okdVal',d.hk_hoogte,1015);set('doornVal',d.doornmaat,72);set('pcVal',d.pc_maat,72);
+  set('bkd1',d.bkd1,142);set('bkd2',d.bkd2,391);set('bkd3',d.bkd3,1006);set('bkd4',d.bkd4,1872);
+  draai=d.draairichting||'rechts';
+  G('pill-l').classList.toggle('active',draai==='links');
+  G('pill-r').classList.toggle('active',draai==='rechts');
+  armMode=d.arm||'hang';
+  ['hang','sluit','beide'].forEach(k=>G('arm-'+k).classList.toggle('active',k===armMode));
+  glasAan=d.glas_aan!==false;
+  G('glas-toggle').classList.toggle('off',!glasAan);
+  G('glas-fields').style.display=glasAan?'':'none';
+}
+
+// GET DATA
+function getData(){
+  return{
+    naam:G('deur-naam-input').value,
+    breedte:vv('kW',975),hoogte:vv('kH',2124),
+    draairichting:draai,arm:armMode,glas_aan:glasAan,
+    dm_bov:vv('dmBov',140),off_x:vv('pOffX',140),
+    glas_breedte:vv('pW',240),glas_hoogte:vv('pH',1385),
+    hk_hoogte:vv('okdVal',1015),doornmaat:vv('doornVal',72),pc_maat:vv('pcVal',72),
+    bkd1:vv('bkd1',142),bkd2:vv('bkd2',391),bkd3:vv('bkd3',1006),bkd4:vv('bkd4',1872)
+  };
+}
+
+function onNaamChange(){if(S.activeDeur)S.activeDeur.naam=G('deur-naam-input').value;}
+
+// AUTO SAVE
+async function autoSave(){
+  if(!S.activeDeur?.id)return;
+  try{
+    const data=getData();
+    await supa(`deuren?id=eq.${S.activeDeur.id}`,'PATCH',{...data,updated_at:new Date().toISOString()});
+    const i=S.deuren.findIndex(d=>d.id===S.activeDeur.id);
+    if(i>=0)S.deuren[i]={...S.deuren[i],...data};
+  }catch(e){/*silent*/}
+}
+
+// SAVE
+async function saveDeur(){
+  if(!S.activeDeur?.id)return;
+  const btn=G('save-btn');btn.disabled=true;btn.textContent='…';
+  try{
+    const data=getData();
+    const result=await supa(`deuren?id=eq.${S.activeDeur.id}`,'PATCH',{...data,status:'ingemeten',updated_at:new Date().toISOString()});
+    const upd=Array.isArray(result)?result[0]:{...S.activeDeur,...data,status:'ingemeten'};
+    const i=S.deuren.findIndex(d=>d.id===S.activeDeur.id);
+    if(i>=0)S.deuren[i]=upd;S.activeDeur=upd;
+    const chip=G('measure-status');chip.className='status-chip status-ingemeten';chip.textContent='Ingemeten';
+    toast('Opgeslagen ✓','success');
+  }catch(e){toast('Fout: '+e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Opslaan';}
+}
+
+// NAV
+function goToList(){autoSave().then(()=>{renderList();show('list');});}
+function goBack(){
+  const ref=localStorage.getItem('dashboardUrl');
+  if(ref)location.href=ref;else if(document.referrer)history.back();else window.close();
+}
+
+// MEASURE CONTROLS
+function setDraai(d){draai=d;G('pill-l').classList.toggle('active',d==='links');G('pill-r').classList.toggle('active',d==='rechts');redraw();}
+function setArm(a){armMode=a;['hang','sluit','beide'].forEach(k=>G('arm-'+k).classList.toggle('active',k===a));}
+function toggleGlas(){glasAan=!glasAan;G('glas-toggle').classList.toggle('off',!glasAan);G('glas-fields').style.display=glasAan?'':'none';redraw();}
+function setZoom(z){zoomLvl=Math.min(200,Math.max(40,z));tx('zoom-lbl',zoomLvl+'%');redraw();}
+
+// REDRAW
+function redraw(){
+  const kW=vv('kW',975),kH=vv('kH',2124);
+  const dmB=vv('dmBov',140),offX=vv('pOffX',140),pw=vv('pW',240),ph=vv('pH',1385);
+  const hk=vv('okdVal',1015);
+  const bkds=[vv('bkd1',142),vv('bkd2',391),vv('bkd3',1006),vv('bkd4',1872)];
+  const zW=Z.x1-Z.x0,zH=Z.y1-Z.y0;
+  const sc=Math.min(zW/kW,zH/kH)*(zoomLvl/100);
+  const dW=kW*sc,dH=kH*sc;
+  const ox=Z.x0+(zW-dW)/2,oy=Z.y0+(zH-dH)/2;
+  const sx=x=>ox+x*sc,sy=y=>oy+y*sc;
+
+  sa('deur-outer',{x:ox,y:oy,width:dW,height:dH});
+
+  const isL=draai==='links';
+  const hangX=isL?ox-10:ox+dW-2,hangLX=isL?ox-16:ox+dW+14,hangTA=isL?'end':'start';
+  bkds.forEach((val,i)=>{
+    const by=sy(val);
+    sa(`sch-r${i}`,{x:hangX,y:by-8,visibility:'visible'});
+    sa(`sch-t${i}`,{x:hangLX,y:by,'text-anchor':hangTA,visibility:'visible'});
+    tx(`sch-t${i}`,`bkd ${val}`);
+  });
+
+  const doorn=vv('doornVal',72),pc=vv('pcVal',72);
+  tx('doorn-display',doorn);tx('pc-display',pc);
+
+  const krukY=sy(hk);tx('hk-display',hk);
+  const showKruk=hk>0;
+
+  // Doornmaat: vanuit sluitzijde, stippellijn binnen deur
+  const doornPx=doorn*sc;
+  const sluitX=isL?ox+dW:ox;
+  const doornEndX=isL?sluitX-doornPx:sluitX+doornPx;
+  const tkD=4;
+
+  if(showKruk){
+    ln('doorn-line',sluitX,krukY,doornEndX,krukY);
+    sa('doorn-line',{'stroke-dasharray':'4 3','stroke-width':'1.2'});
+    ln('doorn-tick',sluitX,krukY-tkD,sluitX,krukY+tkD);
+    sa('doorn-txt',{x:(sluitX+doornEndX)/2,y:krukY-7,'text-anchor':'middle'});
+    tx('doorn-txt',doorn+' mm');
+    sa('kruk-dot',{cx:doornEndX,cy:krukY,opacity:1});
+    sa('kruk-dot2',{cx:doornEndX,cy:krukY,opacity:1});
+  }else{
+    cl('doorn-line');cl('doorn-tick');tx('doorn-txt','');
+    sa('kruk-dot',{opacity:0});sa('kruk-dot2',{opacity:0});
+  }
+
+  const pcPx=pc*sc,cilCX=doornEndX,cilCY=krukY+pcPx;
+  const showCil=showKruk&&pc>0;
+  const pcLblX=isL?cilCX+14:cilCX-14,pcTA=isL?'start':'end';
+  if(showCil){
+    ln('pc-line',cilCX,krukY,cilCX,cilCY);
+    ln('pc-tick',cilCX-4,krukY,cilCX+4,krukY);
+    ln('pc-tick2',cilCX-4,cilCY,cilCX+4,cilCY);
+    sa('pc-txt',{x:pcLblX,y:(krukY+cilCY)/2+4,'text-anchor':pcTA});
+    tx('pc-txt',pc+' mm');
+    const khR=5,khSW=5,khSH=8,khSR=khSW/2;
+    const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
+    const pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY+khR+khSH-khSR}`,`A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR}`,`Z`].join(' ');
+    sa('cil-path',{d:pd,visibility:'visible'});
+  }else{
+    cl('pc-line');cl('pc-tick');cl('pc-tick2');tx('pc-txt','');sa('cil-path',{visibility:'hidden'});
+  }
+
+  if(glasAan){
+    sa('glassparing',{x:sx(offX),y:sy(dmB),width:Math.max(0,pw*sc),height:Math.max(0,ph*sc),visibility:'visible'});
+  }else{sa('glassparing',{visibility:'hidden'});}
+
+  // Maatlijnen hoogte
+  const tk=5,dimR=isL;
+  const lx1=dimR?ox+dW+52:ox-46,lx2=dimR?ox+dW+34:ox-30;
+  const txX=dimR?lx2-4:lx2+4,txR=dimR?'end':'start';
+  ln('dh-total',lx1,oy,lx1,oy+dH);ln('dh-tick-t',lx1-tk,oy,lx1+tk,oy);ln('dh-tick-b',lx1-tk,oy+dH,lx1+tk,oy+dH);
+  const dhcx=dimR?lx1+8:lx1-8,dhcy=oy+dH/2;
+  sa('dh-total-txt',{x:dhcx,y:dhcy,transform:`rotate(-90,${dhcx},${dhcy})`,'text-anchor':'middle'});tx('dh-total-txt',kH);
+  ['dh-bov','dh-bov-t1','dh-bov-t2'].forEach(id=>cl(id));tx('dh-bov-txt','');
+
+  if(glasAan){
+    const bovY=sy(dmB),panY=sy(dmB+ph);
+    const dmBPx=bovY-oy,panPx=panY-bovY;
+    ln('dh-bov',lx2,oy,lx2,bovY);ln('dh-bov-t1',lx2-tk,oy,lx2+tk,oy);ln('dh-bov-t2',lx2-tk,bovY,lx2+tk,bovY);
+    sa('dh-bov-txt',{x:txX,y:oy+dmBPx/2+4,'text-anchor':txR});tx('dh-bov-txt',dmBPx>10?dmB:'');
+    ln('dh-pan',lx2,bovY,lx2,panY);ln('dh-pan-t2',lx2-tk,bovY,lx2+tk,bovY);ln('dh-rem-t2',lx2-tk,panY,lx2+tk,panY);
+    sa('dh-pan-txt',{x:txX,y:bovY+panPx/2+4,'text-anchor':txR});tx('dh-pan-txt',panPx>14?ph:'');
+    const remPx=(oy+dH)-panY;
+    ln('dh-rem',lx2,panY,lx2,oy+dH);
+    sa('dh-rem-txt',{x:txX,y:panY+remPx/2+4,'text-anchor':txR});tx('dh-rem-txt',remPx>14?Math.max(0,kH-dmB-ph):'');
+  }else{
+    ['dh-bov','dh-bov-t1','dh-bov-t2','dh-pan','dh-pan-t2','dh-rem','dh-rem-t2'].forEach(id=>cl(id));
+    ['dh-bov-txt','dh-pan-txt','dh-rem-txt'].forEach(id=>tx(id,''));
+  }
+
+  // Maatlijnen breedte
+  const by2=oy+dH+34,by1=oy+dH+18;
+  ln('dw-total',ox,by2,ox+dW,by2);ln('dw-tk-l',ox,by2-tk,ox,by2+tk);ln('dw-tk-r',ox+dW,by2-tk,ox+dW,by2+tk);
+  sa('dw-total-txt',{x:ox+dW/2,y:by2+12});tx('dw-total-txt',kW);
+  if(glasAan){
+    const offPx=offX*sc,panRx=sx(offX+pw),pwPx=pw*sc;
+    ln('dw-off',ox,by1,sx(offX),by1);ln('dw-off-t1',ox,by1-tk,ox,by1+tk);ln('dw-off-t2',sx(offX),by1-tk,sx(offX),by1+tk);
+    sa('dw-off-txt',{x:ox+offPx/2,y:by1-5,'text-anchor':'middle'});tx('dw-off-txt',offPx>14?offX:'');
+    ln('dw-pan',sx(offX),by1,panRx,by1);ln('dw-pan-t2',panRx,by1-tk,panRx,by1+tk);
+    sa('dw-pan-txt',{x:sx(offX)+pwPx/2,y:by1-5,'text-anchor':'middle'});tx('dw-pan-txt',pwPx>14?pw:'');
+    const remWPx=(ox+dW)-panRx;
+    ln('dw-rem',panRx,by1,ox+dW,by1);ln('dw-rem-t2',ox+dW,by1-tk,ox+dW,by1+tk);
+    sa('dw-rem-txt',{x:panRx+remWPx/2,y:by1-5,'text-anchor':'middle'});tx('dw-rem-txt',remWPx>14?Math.max(0,kW-offX-pw):'');
+  }else{
+    ['dw-off','dw-off-t1','dw-off-t2','dw-pan','dw-pan-t2','dw-rem','dw-rem-t2'].forEach(id=>cl(id));
+    ['dw-off-txt','dw-pan-txt','dw-rem-txt'].forEach(id=>tx(id,''));
+  }
+
+  tx('st-deur',`${kW} × ${kH}`);
+  tx('st-draai',draai.charAt(0).toUpperCase()+draai.slice(1));
+  tx('st-glas',glasAan?'Ja':'Nee');
+}
+
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
