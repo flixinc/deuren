@@ -762,7 +762,7 @@ function redraw(){
     sa('doorn-line',{'stroke-dasharray':'4 3','stroke-width':'1.2'});
     ln('doorn-tick',sluitX,krukY-tkD,sluitX,krukY+tkD);
     sa('doorn-txt',{x:(sluitX+doornEndX)/2,y:krukY-7,'text-anchor':'middle'});
-    tx('doorn-txt',doorn+' mm');
+    tx('doorn-txt',doorn+' DM');
     sa('kruk-dot',{cx:doornEndX,cy:krukY,opacity:1});
     sa('kruk-dot2',{cx:doornEndX,cy:krukY,opacity:1});
   }else{
@@ -772,13 +772,14 @@ function redraw(){
 
   const pcPx=pc*sc,cilCX=doornEndX,cilCY=krukY+pcPx;
   const showCil=showKruk&&pc>0;
-  const pcLblX=isL?cilCX+14:cilCX-14,pcTA=isL?'start':'end';
+  // PC label naast de lijn, naar het midden van de deur
+  const pcLblX=isL?cilCX-14:cilCX+14,pcTA=isL?'end':'start';
   if(showCil){
     ln('pc-line',cilCX,krukY,cilCX,cilCY);
     ln('pc-tick',cilCX-4,krukY,cilCX+4,krukY);
     ln('pc-tick2',cilCX-4,cilCY,cilCX+4,cilCY);
     sa('pc-txt',{x:pcLblX,y:(krukY+cilCY)/2+4,'text-anchor':pcTA});
-    tx('pc-txt',pc+' mm');
+    tx('pc-txt',pc+' PC');
     const khR=5,khSW=5,khSH=8,khSR=khSW/2;
     const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
     const pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY+khR+khSH-khSR}`,`A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR}`,`Z`].join(' ');
@@ -797,16 +798,16 @@ function redraw(){
   if(G('kabel-tot-display'))tx('kabel-tot-display',kabelVan>0?kabelTot:'—');
   if(kabelAan&&kabelVan>0){
     const kVanY=sy(kabelVan),kTotY=sy(kabelTot);
-    const kabelW=12,kabelX=isL?ox+dW-2:ox-kabelW+2;
+    const kabelW=12,kabelX=isL?ox-kabelW+2:ox+dW-2;
     sa('kabel-rect',{x:kabelX,y:Math.min(kVanY,kTotY),width:kabelW,height:Math.abs(kTotY-kVanY),visibility:'visible'});
     sa('kabel-lbl',{x:kabelX+kabelW/2,y:(kVanY+kTotY)/2+3,visibility:'visible'});
     tx('kabel-lbl','EA280');
-    const lblX=isL?kabelX+kabelW+4:kabelX-4;
-    const lblTA=isL?'start':'end';
+    const lblX=isL?kabelX-20:kabelX+kabelW+20;
+    const lblTA=isL?'end':'start';
     sa('kabel-van-txt',{x:lblX,y:kVanY-2,'text-anchor':lblTA,visibility:'visible'});
-    tx('kabel-van-txt',kabelVan+' mm');
+    tx('kabel-van-txt',kabelVan);
     sa('kabel-tot-txt',{x:lblX,y:kTotY+9,'text-anchor':lblTA,visibility:'visible'});
-    tx('kabel-tot-txt',kabelTot+' mm');
+    tx('kabel-tot-txt',kabelTot);
   }else{
     sa('kabel-rect',{visibility:'hidden'});
     sa('kabel-lbl',{visibility:'hidden'});
