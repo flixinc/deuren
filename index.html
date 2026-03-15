@@ -146,11 +146,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <div class="setup-lbl">Anon Key</div>
         <input class="setup-input" id="inp-key" placeholder="eyJ..." autocomplete="off">
       </div>
-      <div class="setup-field" id="mnr-field" style="display:none">
-        <div class="setup-lbl">M-nummer</div>
-        <input class="setup-input" id="inp-mnr" placeholder="M2343332" autocomplete="off" style="text-transform:uppercase">
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">Normaal automatisch meegegeven vanuit het dashboard.</div>
-      </div>
+
       <div id="setup-error" class="setup-error" style="display:none"></div>
       <button class="setup-btn" onclick="saveSetup()">Opslaan &amp; starten</button>
     </div>
@@ -394,8 +390,8 @@ function show(id){
 
 // SUPABASE
 async function supa(path,method='GET',body=null){
-  const url=localStorage.getItem('supabaseUrl');
-  const key=localStorage.getItem('supabaseKey');
+  const url=localStorage.getItem('compier_sb_url');
+  const key=localStorage.getItem('compier_sb_key');
   const h={'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'};
   if(method==='POST'||method==='PATCH')h['Prefer']='return=representation';
   const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:h,body:body?JSON.stringify(body):null});
@@ -406,20 +402,10 @@ async function supa(path,method='GET',body=null){
 // SETUP
 function saveSetup(){
   const url=G('inp-url').value.trim(),key=G('inp-key').value.trim();
-  const mnr=G('inp-mnr').value.trim().toUpperCase();
   const err=G('setup-error');
   if(!url||!key){err.textContent='Vul URL en sleutel in';err.style.display='';return;}
   err.style.display='none';
-  localStorage.setItem('supabaseUrl',url);localStorage.setItem('supabaseKey',key);
-  // M-nummer handmatig ingevuld -> URL updaten zonder reload
-  if(mnr){
-    try{
-      const p=new URLSearchParams(location.search);
-      p.set('m',mnr);
-      history.replaceState(null,'',location.pathname+'?'+p.toString());
-    }catch(e){/* srcdoc preview, geen probleem */}
-    S.mNummer=mnr;
-  }
+  localStorage.setItem('compier_sb_url',url);localStorage.setItem('compier_sb_key',key);
   init();
 }
 
@@ -427,11 +413,12 @@ function saveSetup(){
 async function init(){
   const params=new URLSearchParams(location.search);
   S.mNummer=params.get('m');
-  const url=localStorage.getItem('supabaseUrl'),key=localStorage.getItem('supabaseKey');
+  const url=localStorage.getItem('compier_sb_url'),key=localStorage.getItem('compier_sb_key');
   if(url)G('inp-url').value=url;if(key)G('inp-key').value=key;
   if(!url||!key){show('setup');return;}
   if(!S.mNummer){
-    G('mnr-field').style.display='';show('setup');return;
+    G('setup-error').textContent='Geen M-nummer gevonden. Open de tool vanuit het Compier dashboard.';
+    G('setup-error').style.display='';show('setup');return;
   }
   setLoad(true);
   try{
