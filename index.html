@@ -450,10 +450,10 @@ async function init(){
   if(url)G('inp-url').value=url;if(key)G('inp-key').value=key;
   if(!url||!key){show('setup');return;}
   if(!S.mNummer){
-    // Geen M-nummer: laad projectkiezer
+    // Geen M-nummer: laad alle actieve projecten (lopend + offerte)
     setLoad(true);
     try{
-      const data=await supa('projecten?order=nummer.asc&status=eq.lopend');
+      const data=await supa('projecten?status=in.(lopend,offerte)&order=nummer.asc');
       S.allProjecten=data||[];
       renderPicker(S.allProjecten);
       show('picker');
@@ -485,17 +485,19 @@ function projNaam(){
 function renderPicker(lijst){
   const body=G('picker-body');body.innerHTML='';
   if(!lijst.length){
-    body.innerHTML='<div style="color:var(--dim);font-size:13px;padding:20px 0;">Geen lopende projecten gevonden.</div>';
+    body.innerHTML='<div style="color:var(--dim);font-size:13px;padding:20px 0;">Geen actieve projecten gevonden.</div>';
     return;
   }
   lijst.forEach(p=>{
     const card=document.createElement('div');card.className='picker-card';
+    const isOfferte=p.status==='offerte';
     card.innerHTML=`
       <div class="picker-nr">${p.nummer||'—'}</div>
       <div class="picker-info">
         <div class="picker-adres">${p.adres||'Onbekend adres'}</div>
         <div class="picker-opd">${p.opdrachtgever||''}</div>
       </div>
+      ${isOfferte?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(74,144,217,.1);color:#4a90d9;border:1px solid rgba(74,144,217,.2);flex-shrink:0;">Offerte</span>':''}
       <div class="picker-arrow">›</div>`;
     card.onclick=()=>kiesPicker(p);
     body.appendChild(card);
