@@ -279,9 +279,21 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <div id="kabel-fields" style="margin-top:8px;display:none;">
           <div class="field-group">
             <div class="field"><span class="field-lbl">Van BKD</span><input id="kabelVan" type="number" value="0" oninput="redraw()"><span class="unit">mm</span></div>
-            <div class="field"><span class="field-lbl">Tot BKD</span><input id="kabelTot" type="number" value="0" oninput="redraw()"><span class="unit">mm</span></div>
           </div>
-          <div style="font-size:10px;color:var(--dim);margin-top:6px;line-height:1.5;">Hangzijde · tussen onderste en middelste scharnier</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:6px;line-height:1.5;">Hangzijde · 323mm lang · tot <span id="kabel-tot-display">—</span> mm</div>
+        </div>
+      </div>
+      <hr class="div">
+      <div>
+        <div class="toggle-row">
+          <span class="sec-label" style="margin:0">BSW 89×89 Connect</span>
+          <div class="onoff-toggle off" id="bsw-toggle" onclick="toggleBsw()"></div>
+        </div>
+        <div id="bsw-fields" style="margin-top:8px;display:none;">
+          <div class="field-group">
+            <div class="field"><span class="field-lbl">Hart data sch.</span><input id="bswBkd" type="number" value="0" oninput="redraw()"><span class="unit">mm</span></div>
+          </div>
+          <div style="font-size:10px;color:var(--dim);margin-top:6px;line-height:1.5;">Hangzijde · BKD gemeten · looplijn → cilinder</div>
         </div>
       </div>
       <hr class="div">
@@ -343,6 +355,10 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <text id="kabel-lbl" fill="#8e6bbf" font-size="8" font-family="IBM Plex Mono,monospace" text-anchor="middle" opacity=".9" visibility="hidden"/>
         <text id="kabel-van-txt" fill="#8e6bbf" font-size="8" font-family="IBM Plex Mono,monospace" opacity=".85" visibility="hidden"/>
         <text id="kabel-tot-txt" fill="#8e6bbf" font-size="8" font-family="IBM Plex Mono,monospace" opacity=".85" visibility="hidden"/>
+        <!-- BSW 89x89 CONNECT -->
+        <rect id="bsw-sch" width="10" height="16" rx="2" fill="rgba(74,144,217,.2)" stroke="#4a90d9" stroke-width="1.5" visibility="hidden"/>
+        <text id="bsw-sch-lbl" fill="#4a90d9" font-size="8" font-family="IBM Plex Mono,monospace" dominant-baseline="middle" opacity=".9" visibility="hidden"/>
+        <line id="bsw-lijn" stroke="#4a90d9" stroke-width="1" stroke-dasharray="4 3" opacity=".7" visibility="hidden"/>
         <rect id="sch-r0" width="10" height="16" rx="2" fill="rgba(76,175,110,.25)" stroke="#4caf6e" stroke-width="1.5"/>
         <text id="sch-t0" fill="#4caf6e" font-size="9" font-family="IBM Plex Mono,monospace" dominant-baseline="middle" opacity=".9"/>
         <rect id="sch-r1" width="10" height="16" rx="2" fill="rgba(76,175,110,.25)" stroke="#4caf6e" stroke-width="1.5"/>
@@ -416,7 +432,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
 <script>
 // STATE
 const S={mNummer:null,project:null,deuren:[],activeDeur:null,activeIdx:0,allProjecten:[]};
-let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false;
+let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false,bswAan=false;
 const Z={x0:75,y0:18,x1:310,y1:468};
 
 // UTILS
@@ -588,7 +604,8 @@ async function addDeur(){
       breedte:930,hoogte:2315,draairichting:'rechts',arm:'hang',glas_aan:true,
       dm_bov:140,off_x:140,glas_breedte:240,glas_hoogte:1385,
       hk_hoogte:1050,doornmaat:60,pc_maat:72,bkd1:142,bkd2:391,bkd3:1006,bkd4:1872,
-      kabel_aan:false,kabel_van:0,kabel_tot:0
+      kabel_aan:false,kabel_van:0,kabel_tot:0,
+      bsw_aan:false,bsw_bkd:0
     });
     const nd=Array.isArray(result)?result[0]:result;
     S.deuren.push(nd);openMeasure(S.deuren.length-1);
@@ -638,7 +655,11 @@ function populateForm(d){
   kabelAan=d.kabel_aan===true;
   G('kabel-toggle').classList.toggle('off',!kabelAan);
   G('kabel-fields').style.display=kabelAan?'':'none';
-  set('kabelVan',d.kabel_van,0);set('kabelTot',d.kabel_tot,0);
+  set('kabelVan',d.kabel_van,0);
+  bswAan=d.bsw_aan===true;
+  G('bsw-toggle').classList.toggle('off',!bswAan);
+  G('bsw-fields').style.display=bswAan?'':'none';
+  set('bswBkd',d.bsw_bkd,0);
 }
 
 // GET DATA
@@ -651,7 +672,8 @@ function getData(){
     glas_breedte:vv('pW',240),glas_hoogte:vv('pH',1385),
     hk_hoogte:vv('okdVal',1050),doornmaat:vv('doornVal',60),pc_maat:vv('pcVal',72),
     bkd1:vv('bkd1',142),bkd2:vv('bkd2',391),bkd3:vv('bkd3',1006),bkd4:vv('bkd4',1872),
-    kabel_aan:kabelAan,kabel_van:vv('kabelVan',0),kabel_tot:vv('kabelTot',0)
+    kabel_aan:kabelAan,kabel_van:vv('kabelVan',0),kabel_tot:vv('kabelVan',0)+323,
+    bsw_aan:bswAan,bsw_bkd:vv('bswBkd',0)
   };
 }
 
@@ -696,6 +718,7 @@ function setDraai(d){draai=d;G('pill-l').classList.toggle('active',d==='links');
 function setArm(a){armMode=a;['hang','sluit','beide'].forEach(k=>G('arm-'+k).classList.toggle('active',k===a));}
 function toggleGlas(){glasAan=!glasAan;G('glas-toggle').classList.toggle('off',!glasAan);G('glas-fields').style.display=glasAan?'':'none';redraw();}
 function toggleKabel(){kabelAan=!kabelAan;G('kabel-toggle').classList.toggle('off',!kabelAan);G('kabel-fields').style.display=kabelAan?'':'none';redraw();}
+function toggleBsw(){bswAan=!bswAan;G('bsw-toggle').classList.toggle('off',!bswAan);G('bsw-fields').style.display=bswAan?'':'none';redraw();}
 function setZoom(z){zoomLvl=Math.min(200,Math.max(40,z));tx('zoom-lbl',zoomLvl+'%');redraw();}
 
 // REDRAW
@@ -769,8 +792,10 @@ function redraw(){
   }else{sa('glassparing',{visibility:'hidden'});}
 
   // ---- KABELOVERGANG EA280 ----
-  const kabelVan=vv('kabelVan',0),kabelTot=vv('kabelTot',0);
-  if(kabelAan&&kabelVan>0&&kabelTot>0){
+  const kabelVan=vv('kabelVan',0);
+  const kabelTot=kabelVan+323;
+  if(G('kabel-tot-display'))tx('kabel-tot-display',kabelVan>0?kabelTot:'—');
+  if(kabelAan&&kabelVan>0){
     const kVanY=sy(kabelVan),kTotY=sy(kabelTot);
     const kabelW=12,kabelX=isL?ox+dW-2:ox-kabelW+2;
     sa('kabel-rect',{x:kabelX,y:Math.min(kVanY,kTotY),width:kabelW,height:Math.abs(kTotY-kVanY),visibility:'visible'});
@@ -787,6 +812,33 @@ function redraw(){
     sa('kabel-lbl',{visibility:'hidden'});
     sa('kabel-van-txt',{visibility:'hidden'});
     sa('kabel-tot-txt',{visibility:'hidden'});
+  }
+
+  // ---- BSW 89x89 CONNECT ----
+  const bswBkd=vv('bswBkd',0);
+  if(bswAan&&bswBkd>0){
+    const bswY=sy(bswBkd);
+    // Data scharnier blokje op hangzijde (blauw)
+    const bswX=isL?ox-10:ox+dW-2;
+    const bswLblX=isL?ox-16:ox+dW+14;
+    const bswTA=isL?'end':'start';
+    sa('bsw-sch',{x:bswX,y:bswY-8,visibility:'visible'});
+    sa('bsw-sch-lbl',{x:bswLblX,y:bswY,'text-anchor':bswTA,visibility:'visible'});
+    tx('bsw-sch-lbl',`data ${bswBkd}`);
+    // Looplijn: van hart data scharnier (hangzijde) naar hart cilinder (sluitzijde)
+    // Hangzijde X = rand deur aan hangkant, sluitzijde X = rand deur aan sluitkant
+    const vanX=isL?ox+dW:ox;   // binnenkant deur hangzijde
+    const totX=isL?ox:ox+dW;   // binnenkant deur sluitzijde
+    // Cilinder Y = krukY + pcPx (zelfde als cilCY in de schildje berekening)
+    const krukYbsw=sy(hk);
+    const pcPxBsw=vv('pcVal',72)*sc;
+    const cilYbsw=krukYbsw+pcPxBsw;
+    // Lijn loopt van data scharnier hart horizontaal + diagonaal naar cilinder
+    sa('bsw-lijn',{x1:vanX,y1:bswY,x2:totX,y2:cilYbsw,visibility:'visible'});
+  }else{
+    sa('bsw-sch',{visibility:'hidden'});
+    sa('bsw-sch-lbl',{visibility:'hidden'});
+    sa('bsw-lijn',{visibility:'hidden'});
   }
 
   // Maatlijnen hoogte
