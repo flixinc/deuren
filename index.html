@@ -825,10 +825,9 @@ function redraw(){
     sa('bsw-sch',{x:bswX,y:bswY-8,visibility:'visible'});
     sa('bsw-sch-lbl',{x:bswLblX,y:bswY,'text-anchor':bswTA,visibility:'visible'});
     tx('bsw-sch-lbl',`data ${bswBkd}`);
-    // Looplijn: van hart data scharnier (hangzijde) naar hart cilinder (sluitzijde)
-    // Hangzijde X = rand deur aan hangkant, sluitzijde X = rand deur aan sluitkant
-    const vanX=isL?ox+dW:ox;   // binnenkant deur hangzijde
-    const totX=isL?ox:ox+dW;   // binnenkant deur sluitzijde
+    // Looplijn: van data scharnier (hangzijde) naar slotkast/cilinder (sluitzijde)
+    const vanX=isL?ox:ox+dW;   // hangzijde binnenkant
+    const totX=isL?ox+dW:ox;   // sluitzijde binnenkant
     // Cilinder Y = krukY + pcPx (zelfde als cilCY in de schildje berekening)
     const krukYbsw=sy(hk);
     const pcPxBsw=vv('pcVal',72)*sc;
