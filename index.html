@@ -1072,10 +1072,10 @@ function buildTable(d){
 
 function buildPrintSVG(d){
   // Bouw een statische SVG van de deur voor de printpagina
-  const W=260,H=400;
+  const W=300,H=440;
   const kW=d.breedte||930,kH=d.hoogte||2315;
   const isL=(d.draairichting||'rechts')==='links';
-  const Z={x0:40,y0:14,x1:180,y1:386};
+  const Z={x0:50,y0:14,x1:200,y1:390};
   const zW=Z.x1-Z.x0,zH=Z.y1-Z.y0;
   const sc=Math.min(zW/kW,zH/kH);
   const dW=kW*sc,dH=kH*sc;
@@ -1103,8 +1103,8 @@ function buildPrintSVG(d){
 
   // Dim lines rechts of links
   const dimR=isL;
-  const lx1=dimR?ox+dW+44:ox-38;
-  const lx2=dimR?ox+dW+28:ox-22;
+  const lx1=dimR?ox+dW+48:ox-42;
+  const lx2=dimR?ox+dW+30:ox-24;
   const txX=dimR?lx2-3:lx2+3;
   const txAn=dimR?'end':'start';
 
@@ -1184,10 +1184,10 @@ function buildPrintSVG(d){
     <line x1="${lx1-tk}" y1="${oy+dH}" x2="${lx1+tk}" y2="${oy+dH}" stroke="#c0392b" stroke-width="0.8"/>
     <text x="${dhcx}" y="${dhcy}" text-anchor="middle" fill="#c0392b" font-size="8" font-family="IBM Plex Mono,monospace" transform="rotate(-90,${dhcx},${dhcy})">${kH}</text>
     <!-- breedte maat -->
-    <line x1="${ox}" y1="${oy+dH+22}" x2="${ox+dW}" y2="${oy+dH+22}" stroke="#c0392b" stroke-width="0.8"/>
-    <line x1="${ox}" y1="${oy+dH+18}" x2="${ox}" y2="${oy+dH+26}" stroke="#c0392b" stroke-width="0.8"/>
-    <line x1="${ox+dW}" y1="${oy+dH+18}" x2="${ox+dW}" y2="${oy+dH+26}" stroke="#c0392b" stroke-width="0.8"/>
-    <text x="${ox+dW/2}" y="${oy+dH+33}" text-anchor="middle" fill="#c0392b" font-size="8" font-family="IBM Plex Mono,monospace">${kW}</text>`;
+    <line x1="${ox}" y1="${oy+dH+18}" x2="${ox+dW}" y2="${oy+dH+18}" stroke="#c0392b" stroke-width="0.8"/>
+    <line x1="${ox}" y1="${oy+dH+14}" x2="${ox}" y2="${oy+dH+22}" stroke="#c0392b" stroke-width="0.8"/>
+    <line x1="${ox+dW}" y1="${oy+dH+14}" x2="${ox+dW}" y2="${oy+dH+22}" stroke="#c0392b" stroke-width="0.8"/>
+    <text x="${ox+dW/2}" y="${oy+dH+29}" text-anchor="middle" fill="#c0392b" font-size="8" font-family="IBM Plex Mono,monospace">${kW}</text>`;
 
   return svg;
 }
