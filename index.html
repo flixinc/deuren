@@ -438,7 +438,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
 
 <script>
 // STATE
-const S={mNummer:null,project:null,deuren:[],activeDeur:null,activeIdx:0,allProjecten:[]};
+const S={mNummer:null,project:null,deuren:[],activeDeur:null,activeIdx:0,allProjecten:[],leverancierEmail:null,leverancierNaam:null};
 let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false,bswAan=false,seniorenAan=false;
 const Z={x0:75,y0:18,x1:310,y1:468};
 
@@ -499,6 +499,13 @@ async function init(){
     // Geen M-nummer: laad alle actieve projecten (lopend + offerte)
     setLoad(true);
     try{
+    try{
+      const cfg=await supa('instellingen?sleutel=in.(leverancier_email,leverancier_naam)');
+      (cfg||[]).forEach(r=>{
+        if(r.sleutel==='leverancier_email')S.leverancierEmail=r.waarde;
+        if(r.sleutel==='leverancier_naam')S.leverancierNaam=r.waarde;
+      });
+    }catch(e){}
       const data=await supa('projecten?status=in.(lopend,offerte)&order=nummer.asc');
       S.allProjecten=data||[];
       renderPicker(S.allProjecten);
@@ -511,6 +518,14 @@ async function init(){
   }
   setLoad(true);
   try{
+    // Haal instellingen op (leverancier email etc.)
+    try{
+      const cfg=await supa('instellingen?sleutel=in.(leverancier_email,leverancier_naam)');
+      (cfg||[]).forEach(r=>{
+        if(r.sleutel==='leverancier_email')S.leverancierEmail=r.waarde;
+        if(r.sleutel==='leverancier_naam')S.leverancierNaam=r.waarde;
+      });
+    }catch(e){/* instellingen tabel bestaat nog niet, geen probleem */}
     const proj=await supa(`projecten?nummer=eq.${encodeURIComponent(S.mNummer)}&limit=1`);
     S.project=proj?.[0]||{m_nummer:S.mNummer};
     S.deuren=(await supa(`deuren?m_nummer=eq.${encodeURIComponent(S.mNummer)}&order=deur_nr.asc`))||[];
@@ -932,6 +947,7 @@ window.addEventListener('DOMContentLoaded',init);
       <button onclick="openPrint(false)" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;">Deze deur</button>
       <button onclick="openPrint(true)" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;">Alle deuren</button>
       <button onclick="doPrint()" style="background:var(--accent);border:none;color:#fff;border-radius:5px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">PDF / Afdrukken</button>
+      <button id="mail-btn" onclick="stuurMail()" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;display:none;">✉ Bestelling mailen</button>
       <button onclick="closePrint()" style="background:none;border:1px solid var(--border);color:var(--label);border-radius:5px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;">✕</button>
     </div>
   </div>
@@ -989,12 +1005,69 @@ function openPrint(alleDeuren){
     const page=buildPrintPage(d,i+1,deuren.length);
     preview.appendChild(page);
   });
-  // Sla op wat we printen
   overlay._alleDeuren=alleDeuren;
+  const mailBtn=document.getElementById('mail-btn');
+  if(mailBtn)mailBtn.style.display=S.leverancierEmail?'':'none';
 }
 
 function closePrint(){
   document.getElementById('print-overlay').style.display='none';
+}
+
+function stuurMail(){
+  if(!S.leverancierEmail)return;
+  const alleDeuren=document.getElementById('print-overlay')._alleDeuren;
+  const deuren=(alleDeuren?S.deuren:[S.activeDeur]).filter(Boolean);
+  const adres=S.project?.adres||'';
+  const onderwerp=`Bestelling deuren – ${S.mNummer}${adres?' · '+adres:''}`;
+  const body=bouwMailBody(deuren);
+  window.location.href=`mailto:${S.leverancierEmail}?subject=${encodeURIComponent(onderwerp)}&body=${encodeURIComponent(body)}`;
+}
+
+function bouwMailBody(deuren){
+  const naam=S.leverancierNaam||'';
+  const adres=S.project?.adres||'';
+  const datum=new Date().toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let body=`Geachte ${naam},\n\nHierbij onze maatopgave voor project ${S.mNummer}${adres?' – '+adres:''}.\n\n`;
+  body+=`Datum: ${datum}\n`;
+  body+=`${'─'.repeat(50)}\n\n`;
+  deuren.forEach((d,i)=>{
+    body+=`DEUR ${d.deur_nr||i+1}: ${d.naam||'Deur '+(d.deur_nr||i+1)}\n`;
+    body+=`${'─'.repeat(30)}\n`;
+    body+=`Breedte:       ${d.breedte||930} mm\n`;
+    body+=`Hoogte:        ${d.hoogte||2315} mm\n`;
+    body+=`Draairichting: ${d.draairichting||'rechts'}\n`;
+    body+=`Arm aan:       ${{hang:'Hangzijde',sluit:'Sluitzijde',beide:'Allebei'}[d.arm||'hang']}\n`;
+    body+=`\n`;
+    body+=`Hart kruk OKD: ${d.hk_hoogte||1050} mm\n`;
+    body+=`Doornmaat:     ${d.doornmaat||60} mm\n`;
+    body+=`PC maat:       ${d.pc_maat||72} mm\n`;
+    if(d.senioren)body+=`Senioren:      Ja (cilinder boven)\n`;
+    body+=`\n`;
+    const bkds=[d.bkd1,d.bkd2,d.bkd3,d.bkd4].filter(v=>v>0);
+    if(bkds.length){
+      body+=`Scharnierkrozing / BKD:\n`;
+      bkds.forEach((v,j)=>body+=`  BKD ${j+1}: ${v} mm\n`);
+      body+=`\n`;
+    }
+    if(d.glas_aan){
+      body+=`Glassparing:\n`;
+      body+=`  Dagmaat boven: ${d.dm_bov||140} mm\n`;
+      body+=`  Offset X:      ${d.off_x||140} mm\n`;
+      body+=`  Breedte:       ${d.glas_breedte||240} mm\n`;
+      body+=`  Hoogte:        ${d.glas_hoogte||1385} mm\n`;
+      body+=`\n`;
+    }
+    if(d.kabel_aan&&d.kabel_van>0){
+      body+=`Kabelovergang EA280: van ${d.kabel_van} mm tot ${d.kabel_tot||d.kabel_van+323} mm\n\n`;
+    }
+    if(d.bsw_aan&&d.bsw_bkd>0){
+      body+=`BSW 89×89 Connect: hart data scharnier ${d.bsw_bkd} mm\n\n`;
+    }
+    body+=`\n`;
+  });
+  body+=`Met vriendelijke groet,\nCompier\n`;
+  return body;
 }
 
 function doPrint(){
@@ -1055,6 +1128,7 @@ function buildTable(d){
     ${row('Breedte',(d.breedte||930)+' mm',true)}
     ${row('Hoogte',(d.hoogte||2315)+' mm',true)}
     ${row('Draairichting',d.draairichting||'rechts')}
+    ${row('Arm aan',({hang:'Hangzijde',sluit:'Sluitzijde',beide:'Allebei'})[d.arm||'hang']||'Hangzijde')}
     <div class="p-section">Slot</div>
     ${row('Hart kruk OKD',(d.hk_hoogte||1050)+' mm',true)}
     ${row('Doornmaat (DM)',(d.doornmaat||60)+' mm')}
