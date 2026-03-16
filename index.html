@@ -300,9 +300,13 @@ hr.div{border:none;border-top:1px solid var(--border);}
       <div>
         <div class="sec-label">Hart kruk (slot)</div>
         <div class="field-group">
-          <div class="field"><span class="field-lbl">Hoogte</span><input id="okdVal" type="number" value="1050" oninput="redraw()"><span class="unit">mm</span></div>
+          <div class="field"><span class="field-lbl">Hart kruk OKD</span><input id="okdVal" type="number" value="1050" oninput="redraw()"><span class="unit">mm</span></div>
           <div class="field"><span class="field-lbl">Doornmaat</span><input id="doornVal" type="number" value="60" max="100" oninput="this.value=Math.min(100,this.value);redraw()"><span class="unit">mm</span></div>
           <div class="field"><span class="field-lbl">PC maat</span><input id="pcVal" type="number" value="72" oninput="redraw()"><span class="unit">mm</span></div>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;">
+          <span class="toggle-lbl" style="font-size:11px;color:var(--label);">Senioren (cilinder boven)</span>
+          <div class="onoff-toggle off" id="senioren-toggle" onclick="toggleSenioren()"></div>
         </div>
       </div>
     </div>
@@ -432,7 +436,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
 <script>
 // STATE
 const S={mNummer:null,project:null,deuren:[],activeDeur:null,activeIdx:0,allProjecten:[]};
-let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false,bswAan=false;
+let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false,bswAan=false,seniorenAan=false;
 const Z={x0:75,y0:18,x1:310,y1:468};
 
 // UTILS
@@ -605,7 +609,7 @@ async function addDeur(){
       dm_bov:140,off_x:140,glas_breedte:240,glas_hoogte:1385,
       hk_hoogte:1050,doornmaat:60,pc_maat:72,bkd1:142,bkd2:391,bkd3:1006,bkd4:1872,
       kabel_aan:false,kabel_van:0,kabel_tot:0,
-      bsw_aan:false,bsw_bkd:0
+      bsw_aan:false,bsw_bkd:0,senioren:false
     });
     const nd=Array.isArray(result)?result[0]:result;
     S.deuren.push(nd);openMeasure(S.deuren.length-1);
@@ -660,6 +664,8 @@ function populateForm(d){
   G('bsw-toggle').classList.toggle('off',!bswAan);
   G('bsw-fields').style.display=bswAan?'':'none';
   set('bswBkd',d.bsw_bkd,0);
+  seniorenAan=d.senioren===true;
+  G('senioren-toggle').classList.toggle('off',!seniorenAan);
 }
 
 // GET DATA
@@ -673,7 +679,8 @@ function getData(){
     hk_hoogte:vv('okdVal',1050),doornmaat:vv('doornVal',60),pc_maat:vv('pcVal',72),
     bkd1:vv('bkd1',142),bkd2:vv('bkd2',391),bkd3:vv('bkd3',1006),bkd4:vv('bkd4',1872),
     kabel_aan:kabelAan,kabel_van:vv('kabelVan',0),kabel_tot:vv('kabelVan',0)+323,
-    bsw_aan:bswAan,bsw_bkd:vv('bswBkd',0)
+    bsw_aan:bswAan,bsw_bkd:vv('bswBkd',0),
+    senioren:seniorenAan
   };
 }
 
@@ -719,6 +726,7 @@ function setArm(a){armMode=a;['hang','sluit','beide'].forEach(k=>G('arm-'+k).cla
 function toggleGlas(){glasAan=!glasAan;G('glas-toggle').classList.toggle('off',!glasAan);G('glas-fields').style.display=glasAan?'':'none';redraw();}
 function toggleKabel(){kabelAan=!kabelAan;G('kabel-toggle').classList.toggle('off',!kabelAan);G('kabel-fields').style.display=kabelAan?'':'none';redraw();}
 function toggleBsw(){bswAan=!bswAan;G('bsw-toggle').classList.toggle('off',!bswAan);G('bsw-fields').style.display=bswAan?'':'none';redraw();}
+function toggleSenioren(){seniorenAan=!seniorenAan;G('senioren-toggle').classList.toggle('off',!seniorenAan);redraw();}
 function setZoom(z){zoomLvl=Math.min(200,Math.max(40,z));tx('zoom-lbl',zoomLvl+'%');redraw();}
 
 // REDRAW
@@ -748,7 +756,7 @@ function redraw(){
   const doorn=vv('doornVal',72),pc=vv('pcVal',72);
   tx('doorn-display',doorn);tx('pc-display',pc);
 
-  const krukY=sy(hk);tx('hk-display',hk);
+  const krukY=sy(kH-hk);tx('hk-display',hk);
   const showKruk=hk>0;
 
   // Doornmaat: vanuit sluitzijde, stippellijn binnen deur
@@ -770,7 +778,7 @@ function redraw(){
     sa('kruk-dot',{opacity:0});sa('kruk-dot2',{opacity:0});
   }
 
-  const pcPx=pc*sc,cilCX=doornEndX,cilCY=krukY+pcPx;
+  const pcPx=pc*sc,cilCX=doornEndX,cilCY=seniorenAan?krukY-pcPx:krukY+pcPx;
   const showCil=showKruk&&pc>0;
   // PC label naast de lijn, naar het midden van de deur
   const pcLblX=isL?cilCX-14:cilCX+14,pcTA=isL?'end':'start';
@@ -781,8 +789,14 @@ function redraw(){
     sa('pc-txt',{x:pcLblX,y:(krukY+cilCY)/2+4,'text-anchor':pcTA});
     tx('pc-txt',pc+' PC');
     const khR=5,khSW=5,khSH=8,khSR=khSW/2;
-    const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
-    const pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY+khR+khSH-khSR}`,`A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR}`,`Z`].join(' ');
+    let pd;
+    if(seniorenAan){
+      const yJ=cilCY-Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
+      pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 0 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY-khR-khSH+khSR}`,`A ${khSR} ${khSR} 0 0 0 ${cilCX-khSR} ${cilCY-khR-khSH+khSR}`,`Z`].join(' ');
+    }else{
+      const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
+      pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY+khR+khSH-khSR}`,`A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR}`,`Z`].join(' ');
+    }
     sa('cil-path',{d:pd,visibility:'visible'});
   }else{
     cl('pc-line');cl('pc-tick');cl('pc-tick2');tx('pc-txt','');sa('cil-path',{visibility:'hidden'});
@@ -830,9 +844,9 @@ function redraw(){
     const vanX=isL?ox:ox+dW;   // hangzijde binnenkant
     const totX=isL?ox+dW:ox;   // sluitzijde binnenkant
     // Cilinder Y = krukY + pcPx (zelfde als cilCY in de schildje berekening)
-    const krukYbsw=sy(hk);
+    const krukYbsw=sy(kH-hk);
     const pcPxBsw=vv('pcVal',72)*sc;
-    const cilYbsw=krukYbsw+pcPxBsw;
+    const cilYbsw=seniorenAan?krukYbsw-pcPxBsw:krukYbsw+pcPxBsw;
     // Lijn loopt van data scharnier hart horizontaal + diagonaal naar cilinder
     sa('bsw-lijn',{x1:vanX,y1:bswY,x2:totX,y2:cilYbsw,visibility:'visible'});
   }else{
