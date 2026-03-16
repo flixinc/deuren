@@ -905,8 +905,11 @@ function redraw(){
   tx('st-sch',actieveSch===0?'Nee':actieveSch);
 }
 
+window.addEventListener('DOMContentLoaded',init);
+</script>
+
 <!-- PRINT OVERLAY -->
-<div id="print-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,15,15,.92);z-index:500;display:none;flex-direction:column;">
+<div id="print-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,15,15,.92);z-index:500;flex-direction:column;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;">
     <div style="font-size:13px;font-weight:600;">Document genereren</div>
     <div style="display:flex;gap:8px;">
