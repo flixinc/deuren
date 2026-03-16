@@ -256,6 +256,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <div class="field-group">
           <div class="field"><span class="field-lbl">Breedte</span><input id="kW" type="number" value="930" oninput="redraw()"><span class="unit">mm</span></div>
           <div class="field"><span class="field-lbl">Hoogte</span><input id="kH" type="number" value="2315" oninput="redraw()"><span class="unit">mm</span></div>
+          <div class="field"><span class="field-lbl">RAL kleur</span><input id="ralKleur" type="text" placeholder="bijv. 9010" oninput="" style="width:80px;text-align:right;"></div>
         </div>
       </div>
       <hr class="div">
@@ -599,7 +600,7 @@ function renderList(){
     S.deuren.forEach((d,i)=>{
       const card=document.createElement('div');card.className='deur-card';
       const ing=d.status==='ingemeten';
-      const maten=d.breedte&&d.hoogte?`${d.breedte} × ${d.hoogte} mm · ${d.draairichting||'rechts'}`:'—';
+      const maten=d.breedte&&d.hoogte?`${d.breedte} × ${d.hoogte} mm · ${d.draairichting||'rechts'}${d.ral_kleur?' · RAL '+d.ral_kleur:''}`:'—';
       card.innerHTML=`
         <div class="deur-nr">${d.deur_nr}</div>
         <div class="deur-info">
@@ -624,7 +625,7 @@ async function addDeur(){
     const nr=S.deuren.length+1;
     const result=await supa('deuren','POST',{
       m_nummer:S.mNummer,deur_nr:nr,naam:`Deur ${nr}`,status:'open',
-      breedte:930,hoogte:2315,draairichting:'rechts',arm:'hang',glas_aan:true,
+      breedte:930,hoogte:2315,draairichting:'rechts',arm:'hang',ral_kleur:'',glas_aan:true,
       dm_bov:140,off_x:140,glas_breedte:240,glas_hoogte:1385,
       hk_hoogte:1050,doornmaat:60,pc_maat:72,bkd1:142,bkd2:391,bkd3:1006,bkd4:1872,
       kabel_aan:false,kabel_van:0,kabel_tot:0,
@@ -676,6 +677,7 @@ function navDeur(dir){
 function populateForm(d){
   const set=(id,val,def)=>{const el=G(id);if(el)el.value=val??def;};
   set('kW',d.breedte,930);set('kH',d.hoogte,2315);
+  const ralEl=document.getElementById('ralKleur');if(ralEl)ralEl.value=d.ral_kleur||'';
   set('dmBov',d.dm_bov,140);set('pOffX',d.off_x,140);
   set('pW',d.glas_breedte,240);set('pH',d.glas_hoogte,1385);
   set('okdVal',d.hk_hoogte,1050);set('doornVal',d.doornmaat,60);set('pcVal',d.pc_maat,72);
@@ -705,7 +707,7 @@ function getData(){
   return{
     naam:G('deur-naam-input').value,
     breedte:vv('kW',930),hoogte:vv('kH',2315),
-    draairichting:draai,arm:armMode,glas_aan:glasAan,
+    draairichting:draai,arm:armMode,ral_kleur:(document.getElementById('ralKleur')?.value||'').trim(),glas_aan:glasAan,
     dm_bov:vv('dmBov',140),off_x:vv('pOffX',140),
     glas_breedte:vv('pW',240),glas_hoogte:vv('pH',1385),
     hk_hoogte:vv('okdVal',1050),doornmaat:vv('doornVal',60),pc_maat:vv('pcVal',72),
@@ -1036,6 +1038,7 @@ function bouwMailBody(deuren){
     body+=`${'─'.repeat(30)}\n`;
     body+=`Breedte:       ${d.breedte||930} mm\n`;
     body+=`Hoogte:        ${d.hoogte||2315} mm\n`;
+    if(d.ral_kleur)body+=`RAL kleur:     RAL ${d.ral_kleur}\n`;
     body+=`Draairichting: ${d.draairichting||'rechts'}\n`;
     body+=`Arm aan:       ${{hang:'Hangzijde',sluit:'Sluitzijde',beide:'Allebei'}[d.arm||'hang']}\n`;
     body+=`\n`;
@@ -1127,6 +1130,7 @@ function buildTable(d){
     <div class="p-section">Afmetingen</div>
     ${row('Breedte',(d.breedte||930)+' mm',true)}
     ${row('Hoogte',(d.hoogte||2315)+' mm',true)}
+    ${d.ral_kleur?row('RAL kleur','RAL '+d.ral_kleur,true):''}
     ${row('Draairichting',d.draairichting||'rechts')}
     ${row('Arm aan',({hang:'Hangzijde',sluit:'Sluitzijde',beide:'Allebei'})[d.arm||'hang']||'Hangzijde')}
     <div class="p-section">Slot</div>
