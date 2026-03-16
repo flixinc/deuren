@@ -256,7 +256,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <div class="field-group">
           <div class="field"><span class="field-lbl">Breedte</span><input id="kW" type="number" value="930" oninput="redraw()"><span class="unit">mm</span></div>
           <div class="field"><span class="field-lbl">Hoogte</span><input id="kH" type="number" value="2315" oninput="redraw()"><span class="unit">mm</span></div>
-          <div class="field"><span class="field-lbl">RAL kleur</span><input id="ralKleur" type="text" placeholder="bijv. 9010" oninput="" style="width:80px;text-align:right;"></div>
+          <div class="field"><span class="field-lbl">RAL kleur</span><input id="ralKleur" type="text" placeholder="zoek RAL…" list="ral-list" autocomplete="off" style="width:100px;text-align:right;font-size:11px;"></div>
         </div>
       </div>
       <hr class="div">
@@ -1215,7 +1215,42 @@ function buildPrintSVG(d){
   let glasSVG='';
   if(d.glas_aan){
     const dmB=d.dm_bov||140,offX=d.off_x||140,pw=d.glas_breedte||240,ph=d.glas_hoogte||1385;
-    glasSVG=`<rect x="${sx(offX)}" y="${sy(dmB)}" width="${pw*sc}" height="${ph*sc}" rx="1.5" fill="#4a90d922" stroke="#4a90d9" stroke-width="1" stroke-dasharray="4 2"/>`;
+    const gx=sx(offX),gy=sy(dmB),gw=pw*sc,gh=ph*sc;
+    // Glassparing blok
+    glasSVG=`<rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="1.5" fill="#4a90d922" stroke="#4a90d9" stroke-width="1" stroke-dasharray="4 2"/>`;
+    // Hoogte maatlijnen glassparing - aan andere kant dan totale hoogte
+    const glx=dimR?ox-22:ox+dW+16; // tegenovergestelde kant van rode maatlijn
+    const gtxX=dimR?glx-3:glx+3;
+    const gtxA=dimR?'end':'start';
+    const tk2=3;
+    // Dagmaat boven segment
+    const dmBPx=gy-oy;
+    if(dmBPx>8){
+      glasSVG+=`<line x1="${glx}" y1="${oy}" x2="${glx}" y2="${gy}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <line x1="${glx-tk2}" y1="${oy}" x2="${glx+tk2}" y2="${oy}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <line x1="${glx-tk2}" y1="${gy}" x2="${glx+tk2}" y2="${gy}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <text x="${gtxX}" y="${oy+dmBPx/2+3}" text-anchor="${gtxA}" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${dmB}</text>`;
+    }
+    // Glassparing hoogte segment
+    if(gh>10){
+      glasSVG+=`<line x1="${glx}" y1="${gy}" x2="${glx}" y2="${gy+gh}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <line x1="${glx-tk2}" y1="${gy+gh}" x2="${glx+tk2}" y2="${gy+gh}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <text x="${gtxX}" y="${gy+gh/2+3}" text-anchor="${gtxA}" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${ph}</text>`;
+    }
+    // Breedte maatlijn glassparing - boven de deur breedte maatlijn
+    const gby=oy+dH+6;
+    const offPx=offX*sc;
+    if(offPx>8){
+      glasSVG+=`<line x1="${ox}" y1="${gby}" x2="${gx}" y2="${gby}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <line x1="${ox}" y1="${gby-tk2}" x2="${ox}" y2="${gby+tk2}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <line x1="${gx}" y1="${gby-tk2}" x2="${gx}" y2="${gby+tk2}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <text x="${ox+offPx/2}" y="${gby-3}" text-anchor="middle" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${offX}</text>`;
+    }
+    if(gw>10){
+      glasSVG+=`<line x1="${gx}" y1="${gby}" x2="${gx+gw}" y2="${gby}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <line x1="${gx+gw}" y1="${gby-tk2}" x2="${gx+gw}" y2="${gby+tk2}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
+      <text x="${gx+gw/2}" y="${gby-3}" text-anchor="middle" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${pw}</text>`;
+    }
   }
 
   // Kabelovergang
@@ -1286,6 +1321,222 @@ function buildPrintSVG(d){
   return svg;
 }
 </script>
+
+<datalist id="ral-list">
+<option value="RAL 1000">RAL 1000 Groenbeige</option>
+<option value="RAL 1001">RAL 1001 Beige</option>
+<option value="RAL 1002">RAL 1002 Zandgeel</option>
+<option value="RAL 1003">RAL 1003 Signaalgeel</option>
+<option value="RAL 1004">RAL 1004 Goudgeel</option>
+<option value="RAL 1005">RAL 1005 Honinggeel</option>
+<option value="RAL 1006">RAL 1006 Maisgeel</option>
+<option value="RAL 1007">RAL 1007 Narcissengeel</option>
+<option value="RAL 1011">RAL 1011 Bruingeel</option>
+<option value="RAL 1012">RAL 1012 Citroengeel</option>
+<option value="RAL 1013">RAL 1013 Parelwit</option>
+<option value="RAL 1014">RAL 1014 Ivoor</option>
+<option value="RAL 1015">RAL 1015 Lichtivoor</option>
+<option value="RAL 1016">RAL 1016 Zwavalgeel</option>
+<option value="RAL 1017">RAL 1017 Saffraangeel</option>
+<option value="RAL 1018">RAL 1018 Zinkgeel</option>
+<option value="RAL 1019">RAL 1019 Grijsbeige</option>
+<option value="RAL 1020">RAL 1020 Olijfgeel</option>
+<option value="RAL 1021">RAL 1021 Koolzaadgeel</option>
+<option value="RAL 1023">RAL 1023 Verkeersgeel</option>
+<option value="RAL 1024">RAL 1024 Okergeel</option>
+<option value="RAL 1026">RAL 1026 Briljantgeel</option>
+<option value="RAL 1027">RAL 1027 Currygeel</option>
+<option value="RAL 1028">RAL 1028 Meloengeel</option>
+<option value="RAL 1032">RAL 1032 Gaspeldoorngeel</option>
+<option value="RAL 1033">RAL 1033 Dahliageel</option>
+<option value="RAL 1034">RAL 1034 Pastelgeel</option>
+<option value="RAL 1035">RAL 1035 Parelbeige</option>
+<option value="RAL 1036">RAL 1036 Parelgoud</option>
+<option value="RAL 1037">RAL 1037 Zonnebloemgeel</option>
+<option value="RAL 2000">RAL 2000 Geelrood</option>
+<option value="RAL 2001">RAL 2001 Roodoranje</option>
+<option value="RAL 2002">RAL 2002 Vermiljoen</option>
+<option value="RAL 2003">RAL 2003 Pasteloranje</option>
+<option value="RAL 2004">RAL 2004 Zuiver oranje</option>
+<option value="RAL 2005">RAL 2005 Briljantoranje</option>
+<option value="RAL 2007">RAL 2007 Briljantlichtoranje</option>
+<option value="RAL 2008">RAL 2008 Helderlichtoranje</option>
+<option value="RAL 2009">RAL 2009 Verkeersoranje</option>
+<option value="RAL 2010">RAL 2010 Signaaloranje</option>
+<option value="RAL 2011">RAL 2011 Dieporanje</option>
+<option value="RAL 2012">RAL 2012 Zalmoranje</option>
+<option value="RAL 2013">RAL 2013 Parloranje</option>
+<option value="RAL 3000">RAL 3000 Vlammend rood</option>
+<option value="RAL 3001">RAL 3001 Signaalrood</option>
+<option value="RAL 3002">RAL 3002 Karmijnrood</option>
+<option value="RAL 3003">RAL 3003 Robijnrood</option>
+<option value="RAL 3004">RAL 3004 Purperrood</option>
+<option value="RAL 3005">RAL 3005 Wijnrood</option>
+<option value="RAL 3007">RAL 3007 Zwartroood</option>
+<option value="RAL 3009">RAL 3009 Oxyderood</option>
+<option value="RAL 3011">RAL 3011 Bruinrood</option>
+<option value="RAL 3012">RAL 3012 Beige rood</option>
+<option value="RAL 3013">RAL 3013 Tomaatrood</option>
+<option value="RAL 3014">RAL 3014 Antiekriood</option>
+<option value="RAL 3015">RAL 3015 Lichtroos</option>
+<option value="RAL 3016">RAL 3016 Koraalrood</option>
+<option value="RAL 3017">RAL 3017 Roos</option>
+<option value="RAL 3018">RAL 3018 Aardbeienrood</option>
+<option value="RAL 3020">RAL 3020 Verkeersrood</option>
+<option value="RAL 3022">RAL 3022 Zalmroze</option>
+<option value="RAL 3024">RAL 3024 Briljantroood</option>
+<option value="RAL 3026">RAL 3026 Briljantlicht rood</option>
+<option value="RAL 3027">RAL 3027 Frambozenrood</option>
+<option value="RAL 3028">RAL 3028 Zuiver rood</option>
+<option value="RAL 3031">RAL 3031 Oriëntrood</option>
+<option value="RAL 3032">RAL 3032 Parelrubijnrood</option>
+<option value="RAL 3033">RAL 3033 Parelroze</option>
+<option value="RAL 4001">RAL 4001 Roodlila</option>
+<option value="RAL 4002">RAL 4002 Roodviolet</option>
+<option value="RAL 4003">RAL 4003 Heideparpur</option>
+<option value="RAL 4004">RAL 4004 Bordeauxviolet</option>
+<option value="RAL 4005">RAL 4005 Blauwlila</option>
+<option value="RAL 4006">RAL 4006 Verkeerspaars</option>
+<option value="RAL 4007">RAL 4007 Purperviolet</option>
+<option value="RAL 4008">RAL 4008 Signaalviolet</option>
+<option value="RAL 4009">RAL 4009 Pastelviolet</option>
+<option value="RAL 4010">RAL 4010 Telemagenta</option>
+<option value="RAL 4011">RAL 4011 Parelpurpur</option>
+<option value="RAL 4012">RAL 4012 Parelbraambes</option>
+<option value="RAL 5000">RAL 5000 Violetblauw</option>
+<option value="RAL 5001">RAL 5001 Groenblauw</option>
+<option value="RAL 5002">RAL 5002 Ultramarijnblauw</option>
+<option value="RAL 5003">RAL 5003 Saffierblaauw</option>
+<option value="RAL 5004">RAL 5004 Zwartblauw</option>
+<option value="RAL 5005">RAL 5005 Signaalblauw</option>
+<option value="RAL 5007">RAL 5007 Briljantblauw</option>
+<option value="RAL 5008">RAL 5008 Grijsblauw</option>
+<option value="RAL 5009">RAL 5009 Azuurblauw</option>
+<option value="RAL 5010">RAL 5010 Gentiaanblauw</option>
+<option value="RAL 5011">RAL 5011 Staalblauw</option>
+<option value="RAL 5012">RAL 5012 Lichtblauw</option>
+<option value="RAL 5013">RAL 5013 Kobaltblauw</option>
+<option value="RAL 5014">RAL 5014 Duivenblauw</option>
+<option value="RAL 5015">RAL 5015 Hemelblauw</option>
+<option value="RAL 5017">RAL 5017 Verkeersblauw</option>
+<option value="RAL 5018">RAL 5018 Turkooisblaauw</option>
+<option value="RAL 5019">RAL 5019 Capriblauw</option>
+<option value="RAL 5020">RAL 5020 Oceaanblauw</option>
+<option value="RAL 5021">RAL 5021 Waterblauw</option>
+<option value="RAL 5022">RAL 5022 Nachtblauw</option>
+<option value="RAL 5023">RAL 5023 Verre blauw</option>
+<option value="RAL 5024">RAL 5024 Pastelblauw</option>
+<option value="RAL 5025">RAL 5025 Parelgentiaanblauw</option>
+<option value="RAL 5026">RAL 5026 Parelnachtblauw</option>
+<option value="RAL 6000">RAL 6000 Patinegroen</option>
+<option value="RAL 6001">RAL 6001 Smaragdgroen</option>
+<option value="RAL 6002">RAL 6002 Bladgroen</option>
+<option value="RAL 6003">RAL 6003 Olijfgroen</option>
+<option value="RAL 6004">RAL 6004 Blauwgroen</option>
+<option value="RAL 6005">RAL 6005 Mosgroen</option>
+<option value="RAL 6006">RAL 6006 Grijsolijf</option>
+<option value="RAL 6007">RAL 6007 Flessengroen</option>
+<option value="RAL 6008">RAL 6008 Bruingroen</option>
+<option value="RAL 6009">RAL 6009 Dennegroen</option>
+<option value="RAL 6010">RAL 6010 Grasgroen</option>
+<option value="RAL 6011">RAL 6011 Resedagroen</option>
+<option value="RAL 6012">RAL 6012 Zwartgroen</option>
+<option value="RAL 6013">RAL 6013 Rietgroen</option>
+<option value="RAL 6014">RAL 6014 Geeloliiif</option>
+<option value="RAL 6015">RAL 6015 Zwartoliiif</option>
+<option value="RAL 6016">RAL 6016 Turkooisgroen</option>
+<option value="RAL 6017">RAL 6017 Maigroen</option>
+<option value="RAL 6018">RAL 6018 Geelgroen</option>
+<option value="RAL 6019">RAL 6019 Witgroen</option>
+<option value="RAL 6020">RAL 6020 Chroomoxydegroen</option>
+<option value="RAL 6021">RAL 6021 Lichtgroen</option>
+<option value="RAL 6022">RAL 6022 Brunolijf</option>
+<option value="RAL 6024">RAL 6024 Verkeersgroen</option>
+<option value="RAL 6025">RAL 6025 Varenkruid</option>
+<option value="RAL 6026">RAL 6026 Opaakgroen</option>
+<option value="RAL 6027">RAL 6027 Lichtgroen</option>
+<option value="RAL 6028">RAL 6028 Dennengroen</option>
+<option value="RAL 6029">RAL 6029 Mintgroen</option>
+<option value="RAL 6032">RAL 6032 Signaalgroen</option>
+<option value="RAL 6033">RAL 6033 Mintturkoois</option>
+<option value="RAL 6034">RAL 6034 Pastelturkoois</option>
+<option value="RAL 6035">RAL 6035 Parelgroen</option>
+<option value="RAL 6036">RAL 6036 Parlopaakgroen</option>
+<option value="RAL 6037">RAL 6037 Zuiver groen</option>
+<option value="RAL 6038">RAL 6038 Briljantgroen</option>
+<option value="RAL 7000">RAL 7000 Pijlstaartgrijs</option>
+<option value="RAL 7001">RAL 7001 Zilvergrijs</option>
+<option value="RAL 7002">RAL 7002 Olijfgrijs</option>
+<option value="RAL 7003">RAL 7003 Mosgrijs</option>
+<option value="RAL 7004">RAL 7004 Signaalgrijs</option>
+<option value="RAL 7005">RAL 7005 Muisgrijs</option>
+<option value="RAL 7006">RAL 7006 Beigegrijs</option>
+<option value="RAL 7008">RAL 7008 Khaakigrijs</option>
+<option value="RAL 7009">RAL 7009 Groengrijs</option>
+<option value="RAL 7010">RAL 7010 Tentgrijs</option>
+<option value="RAL 7011">RAL 7011 IJzergrijs</option>
+<option value="RAL 7012">RAL 7012 Bazaltgrijs</option>
+<option value="RAL 7013">RAL 7013 Bruingrijs</option>
+<option value="RAL 7015">RAL 7015 Leisteengrijs</option>
+<option value="RAL 7016">RAL 7016 Antracietgrijs</option>
+<option value="RAL 7021">RAL 7021 Zwartgrijs</option>
+<option value="RAL 7022">RAL 7022 Ombergrijs</option>
+<option value="RAL 7023">RAL 7023 Betongrijs</option>
+<option value="RAL 7024">RAL 7024 Grafietgrijs</option>
+<option value="RAL 7026">RAL 7026 Granietgrijs</option>
+<option value="RAL 7030">RAL 7030 Steengrijs</option>
+<option value="RAL 7031">RAL 7031 Blauwgrijs</option>
+<option value="RAL 7032">RAL 7032 Kiezelgrijs</option>
+<option value="RAL 7033">RAL 7033 Cementgrijs</option>
+<option value="RAL 7034">RAL 7034 Geelgrijs</option>
+<option value="RAL 7035">RAL 7035 Lichtgrijs</option>
+<option value="RAL 7036">RAL 7036 Platinegrijs</option>
+<option value="RAL 7037">RAL 7037 Stofgrijs</option>
+<option value="RAL 7038">RAL 7038 Achaatgrijs</option>
+<option value="RAL 7039">RAL 7039 Kwartsgrijs</option>
+<option value="RAL 7040">RAL 7040 Venstergrijs</option>
+<option value="RAL 7042">RAL 7042 Verkeersgrijs A</option>
+<option value="RAL 7043">RAL 7043 Verkeersgrijs B</option>
+<option value="RAL 7044">RAL 7044 Zijdegrijs</option>
+<option value="RAL 7045">RAL 7045 Telegrijs 1</option>
+<option value="RAL 7046">RAL 7046 Telegrijs 2</option>
+<option value="RAL 7047">RAL 7047 Telegrijs 4</option>
+<option value="RAL 7048">RAL 7048 Parelmuisgrijs</option>
+<option value="RAL 8000">RAL 8000 Groenbruin</option>
+<option value="RAL 8001">RAL 8001 Okerbruin</option>
+<option value="RAL 8002">RAL 8002 Signaalbruin</option>
+<option value="RAL 8003">RAL 8003 Leembruin</option>
+<option value="RAL 8004">RAL 8004 Koperbruin</option>
+<option value="RAL 8007">RAL 8007 Hertbruin</option>
+<option value="RAL 8008">RAL 8008 Olijfbruin</option>
+<option value="RAL 8011">RAL 8011 Nootbruin</option>
+<option value="RAL 8012">RAL 8012 Roodbruin</option>
+<option value="RAL 8014">RAL 8014 Sepiabruin</option>
+<option value="RAL 8015">RAL 8015 Kastanjebruin</option>
+<option value="RAL 8016">RAL 8016 Mahonibruin</option>
+<option value="RAL 8017">RAL 8017 Chocoladebruin</option>
+<option value="RAL 8019">RAL 8019 Grijsbruin</option>
+<option value="RAL 8022">RAL 8022 Zwartbruin</option>
+<option value="RAL 8023">RAL 8023 Oranjbruin</option>
+<option value="RAL 8024">RAL 8024 Beige bruin</option>
+<option value="RAL 8025">RAL 8025 Lichtbruin</option>
+<option value="RAL 8028">RAL 8028 Terrabruin</option>
+<option value="RAL 8029">RAL 8029 Parelkoper</option>
+<option value="RAL 9001">RAL 9001 Crèmewit</option>
+<option value="RAL 9002">RAL 9002 Grijswit</option>
+<option value="RAL 9003">RAL 9003 Signaalwit</option>
+<option value="RAL 9004">RAL 9004 Signaalzwart</option>
+<option value="RAL 9005">RAL 9005 Gitzwart</option>
+<option value="RAL 9006">RAL 9006 Witalluminium</option>
+<option value="RAL 9007">RAL 9007 Grijsaluminium</option>
+<option value="RAL 9010">RAL 9010 Zuiver wit</option>
+<option value="RAL 9011">RAL 9011 Grafietazwart</option>
+<option value="RAL 9016">RAL 9016 Verkeerswit</option>
+<option value="RAL 9017">RAL 9017 Verkeersazwart</option>
+<option value="RAL 9018">RAL 9018 Papyruswit</option>
+<option value="RAL 9022">RAL 9022 Parellichgrijs</option>
+<option value="RAL 9023">RAL 9023 Parelddonkergrijs</option>
+</datalist>
 
 </body>
 </html>
