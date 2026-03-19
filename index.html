@@ -998,7 +998,11 @@ window.addEventListener('DOMContentLoaded',init);
 .p-deur-titel { font-size:19px; font-weight:600; margin-bottom:8mm; }
 .p-body { display:flex; gap:6mm; }
 .p-svg-wrap { flex:1.2; display:flex; align-items:flex-start; justify-content:center; }
-.p-svg-wrap svg { width:100%; max-width:122mm; height:auto; }
+.p-svg-wrap svg { width:100%; max-width:122mm; height:auto; background:white!important; }
+.p-svg-wrap svg text { }
+@media print {
+  .p-svg-wrap svg { background:white!important; }
+}
 .p-table-wrap { flex:1; }
 .p-section { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#999; margin:5mm 0 2mm; border-bottom:1px solid #eee; padding-bottom:1mm; }
 .p-row { display:flex; justify-content:space-between; padding:2.5mm 0; border-bottom:1px solid #f5f5f5; font-size:11.5px; }
@@ -1109,13 +1113,11 @@ function doPrint(){
 
 function buildPrintPage(d,nr,total){
   const datum=new Date().toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric'});
-  const projNaamStr=projNaam();
   const adres=S.project?.adres||'';
 
   const page=document.createElement('div');
   page.className='ppage';
 
-  // Header
   page.innerHTML=`
     <div class="p-header">
       <div><div class="p-logo">COMPIER</div><div class="p-logo-sub">Inmeetrapport deuren</div></div>
@@ -1135,9 +1137,43 @@ function buildPrintPage(d,nr,total){
       <span>${d.m_nummer||S.mNummer} · ${d.naam||'Deur '+nr}</span>
     </div>`;
 
-  // SVG tekening
-  page.querySelector(`#psvg-${nr}`).appendChild(buildPrintSVG(d));
+  // Clone de live SVG of render tijdelijk voor andere deuren
+  const svgClone = getLiveSVGForDeur(d);
+  page.querySelector(`#psvg-${nr}`).appendChild(svgClone);
   return page;
+}
+
+function getLiveSVGForDeur(d){
+  const isActive = S.activeDeur && d.id === S.activeDeur.id;
+  if(isActive){
+    // Gebruik de live SVG direct
+    const liveSvg = document.getElementById('door-svg');
+    const clone = liveSvg.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.style.background='white';
+    // Verberg de grid achtergrond
+    clone.querySelectorAll('*').forEach(el=>{
+      const fill=el.getAttribute('fill');
+      if(fill==='#0f0f0f'||fill==='var(--bg)')el.setAttribute('fill','white');
+    });
+    return clone;
+  }else{
+    // Render tijdelijk de andere deur en kloon
+    const prev = S.activeDeur;
+    populateForm(d);
+    redraw();
+    const liveSvg = document.getElementById('door-svg');
+    const clone = liveSvg.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.style.background='white';
+    clone.querySelectorAll('*').forEach(el=>{
+      const fill=el.getAttribute('fill');
+      if(fill==='#0f0f0f'||fill==='var(--bg)')el.setAttribute('fill','white');
+    });
+    // Herstel actieve deur
+    if(prev){ populateForm(prev); redraw(); }
+    return clone;
+  }
 }
 
 function buildTable(d){
