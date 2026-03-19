@@ -430,6 +430,16 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <div class="bkd-input-row"><span id="pc-display" style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;">72</span><span class="bkd-unit">mm</span></div>
         <div class="bkd-desc">Hart kruk → cilindergat</div>
       </div>
+      <hr class="div">
+      <div class="sec-label" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Foto's</span>
+        <span id="foto-count" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0;"></span>
+      </div>
+      <div id="foto-grid" style="display:flex;flex-wrap:wrap;gap:5px;min-height:20px;"></div>
+      <div class="add-btn" style="font-size:11px;padding:9px;margin-top:2px;" onclick="document.getElementById('foto-input').click()">
+        <span style="font-size:15px;line-height:1;">📷</span> Foto toevoegen
+      </div>
+      <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="uploadFoto(this)">
     </div>
   </div>
 
@@ -666,6 +676,7 @@ async function deleteDeur(id,idx){
 function openMeasure(idx){
   S.activeIdx=idx;S.activeDeur=S.deuren[idx];
   populateForm(S.activeDeur);updateTopbar();show('measure');redraw();
+  loadFotos();
 }
 
 function updateTopbar(){
@@ -955,6 +966,110 @@ function redraw(){
   tx('st-glas',glasAan?'Ja':'Nee');
   const actieveSch=bkds.filter(v=>v>0).length;
   tx('st-sch',actieveSch===0?'Nee':actieveSch);
+}
+
+// ── FOTO'S / SUPABASE STORAGE ────────────────────────────────
+const FOTO_BUCKET = 'deuren-fotos';
+
+async function supaStorage(path, method, body=null, rawBody=null, contentType=null){
+  const url=localStorage.getItem('compier_sb_url');
+  const key=localStorage.getItem('compier_sb_key');
+  const h={'apikey':key,'Authorization':'Bearer '+key};
+  if(contentType)h['Content-Type']=contentType;
+  else if(!rawBody)h['Content-Type']='application/json';
+  const opts={method,headers:h};
+  if(rawBody)opts.body=rawBody;
+  else if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(`${url}/storage/v1/${path}`,opts);
+  if(!r.ok)throw new Error(await r.text());
+  const txt=await r.text();return txt?JSON.parse(txt):null;
+}
+
+async function loadFotos(){
+  const d=S.activeDeur;
+  if(!d?.id)return;
+  const grid=G('foto-grid'),cnt=G('foto-count');
+  grid.innerHTML='<div style="font-size:10px;color:var(--dim);">Laden…</div>';
+  try{
+    const res=await supaStorage(`object/list/${FOTO_BUCKET}`,'POST',{
+      prefix:`${S.mNummer}/${d.id}/`,limit:50,
+      sortBy:{column:'created_at',order:'desc'}
+    });
+    const files=(res||[]).filter(f=>f.name&&f.name!=='.emptyFolderPlaceholder');
+    cnt.textContent=files.length?files.length+' foto'+(files.length!==1?'s':''):'';
+    await renderFotoGrid(files,d);
+  }catch(e){
+    grid.innerHTML='<div style="font-size:10px;color:var(--dim);">Niet beschikbaar</div>';
+    if(cnt)cnt.textContent='';
+  }
+}
+
+async function renderFotoGrid(files,d){
+  const grid=G('foto-grid');
+  grid.innerHTML='';
+  if(!files.length){
+    grid.innerHTML='<div style="font-size:10px;color:var(--dim);">Nog geen foto\'s.</div>';
+    return;
+  }
+  const baseUrl=localStorage.getItem('compier_sb_url');
+  const paths=files.map(f=>`${S.mNummer}/${d.id}/${f.name}`);
+  // Signed URLs ophalen (batch, 1 uur geldig, private bucket)
+  let signedMap={};
+  try{
+    const res=await supaStorage(`object/sign/${FOTO_BUCKET}`,'POST',{paths,expiresIn:3600});
+    (res||[]).forEach(r=>{if(r.path&&r.signedURL)signedMap[r.path]=baseUrl+r.signedURL;});
+  }catch(e){/* signed URLs niet beschikbaar */}
+  files.forEach((f,i)=>{
+    const signedUrl=signedMap[paths[i]];
+    if(!signedUrl)return;
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:relative;width:70px;height:70px;flex-shrink:0;';
+    wrap.innerHTML=`
+      <img src="${signedUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;display:block;"
+           onclick="window.open('${signedUrl}','_blank')" loading="lazy"
+           onerror="this.style.background='var(--panel2)';this.removeAttribute('src');">
+      <div onclick="deleteFoto('${f.name}')" title="Verwijderen"
+           style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(15,15,15,.75);border:1px solid rgba(192,57,43,.5);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#f87171;line-height:1;">✕</div>`;
+    grid.appendChild(wrap);
+  });
+}
+
+async function uploadFoto(input){
+  const d=S.activeDeur;
+  if(!d?.id||!input.files?.length)return;
+  const file=input.files[0];
+  input.value='';
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const fname=`${Date.now()}.${ext}`;
+  const path=`${S.mNummer}/${d.id}/${fname}`;
+  const url=localStorage.getItem('compier_sb_url');
+  const key=localStorage.getItem('compier_sb_key');
+  setLoad(true);
+  try{
+    const r=await fetch(`${url}/storage/v1/object/${FOTO_BUCKET}/${path}`,{
+      method:'POST',
+      headers:{'apikey':key,'Authorization':'Bearer '+key,'Content-Type':file.type||'image/jpeg','x-upsert':'true'},
+      body:file
+    });
+    if(!r.ok)throw new Error(await r.text());
+    toast('Foto opgeslagen ✓','success');
+    await loadFotos();
+  }catch(e){toast('Fout bij uploaden: '+e.message,'error');}
+  finally{setLoad(false);}
+}
+
+async function deleteFoto(fname){
+  const d=S.activeDeur;
+  if(!d?.id)return;
+  if(!confirm('Foto verwijderen?'))return;
+  const path=`${S.mNummer}/${d.id}/${fname}`;
+  setLoad(true);
+  try{
+    await supaStorage(`object/${FOTO_BUCKET}`,'DELETE',{prefixes:[path]});
+    toast('Foto verwijderd','success');
+    await loadFotos();
+  }catch(e){toast('Fout: '+e.message,'error');}
+  finally{setLoad(false);}
 }
 
 window.addEventListener('DOMContentLoaded',init);
