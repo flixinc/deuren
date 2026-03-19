@@ -312,6 +312,13 @@ hr.div{border:none;border-top:1px solid var(--border);}
           <span class="toggle-lbl" style="font-size:11px;color:var(--label);">Senioren (cilinder boven)</span>
           <div class="onoff-toggle off" id="senioren-toggle" onclick="toggleSenioren()"></div>
         </div>
+        <div style="margin-top:8px;">
+          <div style="font-size:10px;color:var(--label);margin-bottom:5px;">Voorplaat slot</div>
+          <div class="pill-toggle" style="width:100%;">
+            <div class="pill-opt active" id="vp-20" onclick="setVoorplaat(20)">20 mm</div>
+            <div class="pill-opt" id="vp-24" onclick="setVoorplaat(24)">24 mm</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -440,7 +447,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
 <script>
 // STATE
 const S={mNummer:null,project:null,deuren:[],activeDeur:null,activeIdx:0,allProjecten:[],leverancierEmail:null,leverancierNaam:null};
-let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false,bswAan=false,seniorenAan=false;
+let zoomLvl=100,draai='rechts',glasAan=true,armMode='hang',kabelAan=false,bswAan=false,seniorenAan=false,voorplaatSlot=20;
 const Z={x0:75,y0:18,x1:310,y1:468};
 
 // UTILS
@@ -629,7 +636,7 @@ async function addDeur(){
       dm_bov:140,off_x:140,glas_breedte:240,glas_hoogte:1385,
       hk_hoogte:1050,doornmaat:60,pc_maat:72,bkd1:142,bkd2:391,bkd3:1006,bkd4:1872,
       kabel_aan:false,kabel_van:0,kabel_tot:0,
-      bsw_aan:false,bsw_bkd:0,senioren:false
+      bsw_aan:false,bsw_bkd:0,senioren:false,voorplaat_slot:20
     });
     const nd=Array.isArray(result)?result[0]:result;
     S.deuren.push(nd);openMeasure(S.deuren.length-1);
@@ -700,6 +707,9 @@ function populateForm(d){
   set('bswBkd',d.bsw_bkd,0);
   seniorenAan=d.senioren===true;
   G('senioren-toggle').classList.toggle('off',!seniorenAan);
+  voorplaatSlot=d.voorplaat_slot||20;
+  G('vp-20').classList.toggle('active',voorplaatSlot===20);
+  G('vp-24').classList.toggle('active',voorplaatSlot===24);
 }
 
 // GET DATA
@@ -714,7 +724,7 @@ function getData(){
     bkd1:vv('bkd1',142),bkd2:vv('bkd2',391),bkd3:vv('bkd3',1006),bkd4:vv('bkd4',1872),
     kabel_aan:kabelAan,kabel_van:vv('kabelVan',0),kabel_tot:vv('kabelVan',0)+323,
     bsw_aan:bswAan,bsw_bkd:vv('bswBkd',0),
-    senioren:seniorenAan
+    senioren:seniorenAan,voorplaat_slot:voorplaatSlot
   };
 }
 
@@ -761,6 +771,7 @@ function toggleGlas(){glasAan=!glasAan;G('glas-toggle').classList.toggle('off',!
 function toggleKabel(){kabelAan=!kabelAan;G('kabel-toggle').classList.toggle('off',!kabelAan);G('kabel-fields').style.display=kabelAan?'':'none';redraw();}
 function toggleBsw(){bswAan=!bswAan;G('bsw-toggle').classList.toggle('off',!bswAan);G('bsw-fields').style.display=bswAan?'':'none';redraw();}
 function toggleSenioren(){seniorenAan=!seniorenAan;G('senioren-toggle').classList.toggle('off',!seniorenAan);redraw();}
+function setVoorplaat(v){voorplaatSlot=v;G('vp-20').classList.toggle('active',v===20);G('vp-24').classList.toggle('active',v===24);}
 function setZoom(z){zoomLvl=Math.min(200,Math.max(40,z));tx('zoom-lbl',zoomLvl+'%');redraw();}
 
 // REDRAW
@@ -825,9 +836,11 @@ function redraw(){
     const khR=5,khSW=5,khSH=8,khSR=khSW/2;
     let pd;
     if(seniorenAan){
-      const yJ=cilCY-Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
-      pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 0 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY-khR-khSH+khSR}`,`A ${khSR} ${khSR} 0 0 0 ${cilCX-khSR} ${cilCY-khR-khSH+khSR}`,`Z`].join(' ');
+      // Cilinder boven kruk: cirkel op cilCY, slot wijst omlaag (richting kruk)
+      const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
+      pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY+khR+khSH-khSR}`,`A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR}`,`Z`].join(' ');
     }else{
+      // Cilinder onder kruk: cirkel op cilCY, slot wijst omlaag (weg van kruk)
       const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
       pd=[`M ${cilCX-khSR} ${yJ}`,`A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ}`,`L ${cilCX+khSR} ${cilCY+khR+khSH-khSR}`,`A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR}`,`Z`].join(' ');
     }
@@ -1046,6 +1059,7 @@ function bouwMailBody(deuren){
     body+=`Doornmaat:     ${d.doornmaat||60} mm\n`;
     body+=`PC maat:       ${d.pc_maat||72} mm\n`;
     if(d.senioren)body+=`Senioren:      Ja (cilinder boven)\n`;
+    body+=`Voorplaat slot: ${d.voorplaat_slot||20} mm\n`;
     body+=`\n`;
     const bkds=[d.bkd1,d.bkd2,d.bkd3,d.bkd4].filter(v=>v>0);
     if(bkds.length){
@@ -1138,6 +1152,7 @@ function buildTable(d){
     ${row('Doornmaat (DM)',(d.doornmaat||60)+' mm')}
     ${row('PC maat',(d.pc_maat||72)+' mm')}
     ${d.senioren?row('Senioren','cilinder boven'):''}
+    ${row('Voorplaat slot',(d.voorplaat_slot||20)+' mm')}
     <div class="p-section">Scharnierkrozing / BKD</div>
     ${d.bkd1>0?row('BKD 1',d.bkd1+' mm'):''}
     ${d.bkd2>0?row('BKD 2',d.bkd2+' mm'):''}
@@ -1262,17 +1277,29 @@ function buildPrintSVG(d){
     <text x="${isL?kX-3:kX+11}" y="${(kV+kT)/2}" text-anchor="${isL?'end':'start'}" dominant-baseline="middle" fill="#8e6bbf" font-size="9" font-family="IBM Plex Mono,monospace">EA280</text>`;
   }
 
+  // BSW looplijn
+  let bswSVG='';
+  if(d.bsw_aan&&d.bsw_bkd>0){
+    const bswY=sy(d.bsw_bkd);
+    const bswX=isL?ox-8:ox+dW-2;
+    const bswLblX=isL?ox-12:ox+dW+12;
+    const bswTA=isL?'end':'start';
+    const vanX=isL?ox:ox+dW;
+    const totX=isL?ox+dW:ox;
+    const cilYbsw=senio?krukY-pcPx:krukY+pcPx;
+    bswSVG=`
+    <rect x="${bswX}" y="${bswY-7}" width="8" height="14" rx="1.5" fill="#4a90d922" stroke="#4a90d9" stroke-width="1.2"/>
+    <text x="${bswLblX}" y="${bswY}" text-anchor="${bswTA}" dominant-baseline="middle" fill="#4a90d9" font-size="8" font-family="IBM Plex Mono,monospace">data ${d.bsw_bkd}</text>
+    <line x1="${vanX}" y1="${bswY}" x2="${totX}" y2="${cilYbsw}" stroke="#4a90d9" stroke-width="1" stroke-dasharray="4 3" opacity=".8"/>`;
+  }
+
   // Cilinder keyhole
   const khR=4,khSW=4,khSH=7,khSR=2;
   let cilPath='';
   if(pc>0){
-    if(senio){
-      const yJ=cilCY-Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
-      cilPath=`M ${cilCX-khSR} ${yJ} A ${khR} ${khR} 0 1 0 ${cilCX+khSR} ${yJ} L ${cilCX+khSR} ${cilCY-khR-khSH+khSR} A ${khSR} ${khSR} 0 0 0 ${cilCX-khSR} ${cilCY-khR-khSH+khSR} Z`;
-    }else{
-      const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
-      cilPath=`M ${cilCX-khSR} ${yJ} A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ} L ${cilCX+khSR} ${cilCY+khR+khSH-khSR} A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR} Z`;
-    }
+    // Slot wijst altijd richting kruk (omlaag), ongeacht senioren
+    const yJ=cilCY+Math.sqrt(Math.max(0,khR*khR-khSR*khSR));
+    cilPath=`M ${cilCX-khSR} ${yJ} A ${khR} ${khR} 0 1 1 ${cilCX+khSR} ${yJ} L ${cilCX+khSR} ${cilCY+khR+khSH-khSR} A ${khSR} ${khSR} 0 0 1 ${cilCX-khSR} ${cilCY+khR+khSH-khSR} Z`;
   }
 
   // Dim lines hoogte
@@ -1291,6 +1318,8 @@ function buildPrintSVG(d){
     ${glasSVG}
     <!-- kabelovergang -->
     ${kabelSVG}
+    <!-- BSW looplijn -->
+    ${bswSVG}
     <!-- scharnieren -->
     ${schSVG}
     <!-- doornmaat lijn -->
