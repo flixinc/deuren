@@ -319,6 +319,11 @@ hr.div{border:none;border-top:1px solid var(--border);}
             <div class="pill-opt" id="vp-24" onclick="setVoorplaat(24)">24 mm</div>
           </div>
         </div>
+        <div class="field" style="margin-top:6px;">
+          <span class="field-lbl">BKSK</span>
+          <input id="bkskVal" type="number" value="0" oninput="">
+          <span class="unit">mm</span>
+        </div>
       </div>
     </div>
 
@@ -636,7 +641,7 @@ async function addDeur(){
       dm_bov:140,off_x:140,glas_breedte:240,glas_hoogte:1385,
       hk_hoogte:1050,doornmaat:60,pc_maat:72,bkd1:142,bkd2:391,bkd3:1006,bkd4:1872,
       kabel_aan:false,kabel_van:0,kabel_tot:0,
-      bsw_aan:false,bsw_bkd:0,senioren:false,voorplaat_slot:20
+      bsw_aan:false,bsw_bkd:0,senioren:false,voorplaat_slot:20,bksk:0
     });
     const nd=Array.isArray(result)?result[0]:result;
     S.deuren.push(nd);openMeasure(S.deuren.length-1);
@@ -710,6 +715,7 @@ function populateForm(d){
   voorplaatSlot=d.voorplaat_slot||20;
   G('vp-20').classList.toggle('active',voorplaatSlot===20);
   G('vp-24').classList.toggle('active',voorplaatSlot===24);
+  set('bkskVal',d.bksk||0,0);
 }
 
 // GET DATA
@@ -724,7 +730,7 @@ function getData(){
     bkd1:vv('bkd1',142),bkd2:vv('bkd2',391),bkd3:vv('bkd3',1006),bkd4:vv('bkd4',1872),
     kabel_aan:kabelAan,kabel_van:vv('kabelVan',0),kabel_tot:vv('kabelVan',0)+323,
     bsw_aan:bswAan,bsw_bkd:vv('bswBkd',0),
-    senioren:seniorenAan,voorplaat_slot:voorplaatSlot
+    senioren:seniorenAan,voorplaat_slot:voorplaatSlot,bksk:vv('bkskVal',0)
   };
 }
 
@@ -1060,6 +1066,7 @@ function bouwMailBody(deuren){
     body+=`PC maat:       ${d.pc_maat||72} mm\n`;
     if(d.senioren)body+=`Senioren:      Ja (cilinder boven)\n`;
     body+=`Voorplaat slot: ${d.voorplaat_slot||20} mm\n`;
+    if(d.bksk&&d.bksk>0)body+=`BKSK:           ${d.bksk} mm\n`;
     body+=`\n`;
     const bkds=[d.bkd1,d.bkd2,d.bkd3,d.bkd4].filter(v=>v>0);
     if(bkds.length){
@@ -1153,6 +1160,7 @@ function buildTable(d){
     ${row('PC maat',(d.pc_maat||72)+' mm')}
     ${d.senioren?row('Senioren','cilinder boven'):''}
     ${row('Voorplaat slot',(d.voorplaat_slot||20)+' mm')}
+    ${(d.bksk&&d.bksk>0)?row('BKSK (bovenkant slotkast)',d.bksk+' mm',true):''}
     <div class="p-section">Scharnierkrozing / BKD</div>
     ${d.bkd1>0?row('BKD 1',d.bkd1+' mm'):''}
     ${d.bkd2>0?row('BKD 2',d.bkd2+' mm'):''}
