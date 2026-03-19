@@ -1011,27 +1011,27 @@ async function renderFotoGrid(files,d){
     grid.innerHTML='<div style="font-size:10px;color:var(--dim);">Nog geen foto\'s.</div>';
     return;
   }
-  const baseUrl=localStorage.getItem('compier_sb_url');
-  const paths=files.map(f=>`${S.mNummer}/${d.id}/${f.name}`);
-  // Signed URLs ophalen (batch, 1 uur geldig, private bucket)
-  let signedMap={};
-  try{
-    const res=await supaStorage(`object/sign/${FOTO_BUCKET}`,'POST',{paths,expiresIn:3600});
-    (res||[]).forEach(r=>{if(r.path&&r.signedURL){const su=r.signedURL;signedMap[r.path]=su.startsWith('http')?su:baseUrl+su;}});
-  }catch(e){/* signed URLs niet beschikbaar */}
-  files.forEach((f,i)=>{
-    const signedUrl=signedMap[paths[i]];
-    if(!signedUrl)return;
+  const url=localStorage.getItem('compier_sb_url');
+  const key=localStorage.getItem('compier_sb_key');
+  for(const f of files){
+    const path=`${S.mNummer}/${d.id}/${f.name}`;
+    const dlUrl=`${url}/storage/v1/object/authenticated/${FOTO_BUCKET}/${path}`;
+    let blobUrl=null;
+    try{
+      const r=await fetch(dlUrl,{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+      if(r.ok)blobUrl=URL.createObjectURL(await r.blob());
+    }catch(e){}
+    if(!blobUrl)continue;
     const wrap=document.createElement('div');
     wrap.style.cssText='position:relative;width:70px;height:70px;flex-shrink:0;';
+    const fname=f.name;
     wrap.innerHTML=`
-      <img src="${signedUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;display:block;"
-           onclick="window.open('${signedUrl}','_blank')" loading="lazy"
-           onerror="this.style.background='var(--panel2)';this.removeAttribute('src');">
-      <div onclick="deleteFoto('${f.name}')" title="Verwijderen"
+      <img src="${blobUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;display:block;"
+           onclick="window.open('${blobUrl}','_blank')" loading="lazy">
+      <div onclick="deleteFoto('${fname}')" title="Verwijderen"
            style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(15,15,15,.75);border:1px solid rgba(192,57,43,.5);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:#f87171;line-height:1;">✕</div>`;
     grid.appendChild(wrap);
-  });
+  }
 }
 
 async function uploadFoto(input){
