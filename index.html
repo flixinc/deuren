@@ -1017,7 +1017,7 @@ async function renderFotoGrid(files,d){
   let signedMap={};
   try{
     const res=await supaStorage(`object/sign/${FOTO_BUCKET}`,'POST',{paths,expiresIn:3600});
-    (res||[]).forEach(r=>{if(r.path&&r.signedURL)signedMap[r.path]=baseUrl+r.signedURL;});
+    (res||[]).forEach(r=>{if(r.path&&r.signedURL){const su=r.signedURL;signedMap[r.path]=su.startsWith('http')?su:baseUrl+su;}});
   }catch(e){/* signed URLs niet beschikbaar */}
   files.forEach((f,i)=>{
     const signedUrl=signedMap[paths[i]];
