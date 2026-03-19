@@ -1239,40 +1239,43 @@ function buildPrintSVG(d){
   if(d.glas_aan){
     const dmB=d.dm_bov||140,offX=d.off_x||140,pw=d.glas_breedte||240,ph=d.glas_hoogte||1385;
     const gx=sx(offX),gy=sy(dmB),gw=pw*sc,gh=ph*sc;
+    const offPx=offX*sc;
     // Glassparing blok
     glasSVG=`<rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="1.5" fill="#4a90d922" stroke="#4a90d9" stroke-width="1" stroke-dasharray="4 2"/>`;
-    // Hoogte maatlijnen glassparing - aan andere kant dan totale hoogte
-    const glx=dimR?ox-22:ox+dW+16; // tegenovergestelde kant van rode maatlijn
-    const gtxX=dimR?glx-3:glx+3;
-    const gtxA=dimR?'end':'start';
+
     const tk2=3;
-    // Dagmaat boven segment
-    const dmBPx=gy-oy;
-    if(dmBPx>8){
-      glasSVG+=`<line x1="${glx}" y1="${oy}" x2="${glx}" y2="${gy}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <line x1="${glx-tk2}" y1="${oy}" x2="${glx+tk2}" y2="${oy}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <line x1="${glx-tk2}" y1="${gy}" x2="${glx+tk2}" y2="${gy}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <text x="${gtxX}" y="${oy+dmBPx/2+3}" text-anchor="${gtxA}" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${dmB}</text>`;
-    }
-    // Glassparing hoogte segment
+    // Hoogte maatlijn glassparing: rechts naast het blok, binnen de deur
+    const ghx=gx+gw+10;
     if(gh>10){
-      glasSVG+=`<line x1="${glx}" y1="${gy}" x2="${glx}" y2="${gy+gh}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <line x1="${glx-tk2}" y1="${gy+gh}" x2="${glx+tk2}" y2="${gy+gh}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <text x="${gtxX}" y="${gy+gh/2+3}" text-anchor="${gtxA}" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${ph}</text>`;
+      glasSVG+=`
+      <line x1="${ghx}" y1="${gy}" x2="${ghx}" y2="${gy+gh}" stroke="#4a90d9" stroke-width="0.8" opacity=".9"/>
+      <line x1="${ghx-tk2}" y1="${gy}" x2="${ghx+tk2}" y2="${gy}" stroke="#4a90d9" stroke-width="0.8" opacity=".9"/>
+      <line x1="${ghx-tk2}" y1="${gy+gh}" x2="${ghx+tk2}" y2="${gy+gh}" stroke="#4a90d9" stroke-width="0.8" opacity=".9"/>
+      <text x="${ghx+4}" y="${gy+gh/2+3}" text-anchor="start" fill="#4a90d9" font-size="8" font-family="IBM Plex Mono,monospace" opacity=".95">${ph}</text>`;
     }
-    // Breedte maatlijn glassparing - boven de deur breedte maatlijn
-    const gby=oy+dH+6;
-    const offPx=offX*sc;
-    if(offPx>8){
-      glasSVG+=`<line x1="${ox}" y1="${gby}" x2="${gx}" y2="${gby}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <line x1="${ox}" y1="${gby-tk2}" x2="${ox}" y2="${gby+tk2}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <line x1="${gx}" y1="${gby-tk2}" x2="${gx}" y2="${gby+tk2}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <text x="${ox+offPx/2}" y="${gby-3}" text-anchor="middle" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${offX}</text>`;
+    // Dagmaat boven: klein label linksboven het glasblok
+    if(gy-oy>6){
+      glasSVG+=`
+      <line x1="${ghx}" y1="${oy}" x2="${ghx}" y2="${gy}" stroke="#4a90d9" stroke-width="0.8" opacity=".7" stroke-dasharray="2 2"/>
+      <line x1="${ghx-tk2}" y1="${oy}" x2="${ghx+tk2}" y2="${oy}" stroke="#4a90d9" stroke-width="0.8" opacity=".7"/>
+      <text x="${ghx+4}" y="${oy+(gy-oy)/2+3}" text-anchor="start" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".85">${dmB}</text>`;
     }
+    // Breedte maatlijn glassparing: boven het glasblok
+    const gby2=gy-10;
     if(gw>10){
-      glasSVG+=`<line x1="${gx}" y1="${gby}" x2="${gx+gw}" y2="${gby}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <line x1="${gx+gw}" y1="${gby-tk2}" x2="${gx+gw}" y2="${gby+tk2}" stroke="#4a90d9" stroke-width="0.7" opacity=".8"/>
-      <text x="${gx+gw/2}" y="${gby-3}" text-anchor="middle" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".9">${pw}</text>`;
+      glasSVG+=`
+      <line x1="${gx}" y1="${gby2}" x2="${gx+gw}" y2="${gby2}" stroke="#4a90d9" stroke-width="0.8" opacity=".9"/>
+      <line x1="${gx}" y1="${gby2-tk2}" x2="${gx}" y2="${gby2+tk2}" stroke="#4a90d9" stroke-width="0.8" opacity=".9"/>
+      <line x1="${gx+gw}" y1="${gby2-tk2}" x2="${gx+gw}" y2="${gby2+tk2}" stroke="#4a90d9" stroke-width="0.8" opacity=".9"/>
+      <text x="${gx+gw/2}" y="${gby2-3}" text-anchor="middle" fill="#4a90d9" font-size="8" font-family="IBM Plex Mono,monospace" opacity=".95">${pw}</text>`;
+    }
+    // Offset X: kleine lijn onder het glasblok
+    if(offPx>8){
+      glasSVG+=`
+      <line x1="${ox}" y1="${gy+gh+8}" x2="${gx}" y2="${gy+gh+8}" stroke="#4a90d9" stroke-width="0.8" opacity=".8"/>
+      <line x1="${ox}" y1="${gy+gh+5}" x2="${ox}" y2="${gy+gh+11}" stroke="#4a90d9" stroke-width="0.8" opacity=".8"/>
+      <line x1="${gx}" y1="${gy+gh+5}" x2="${gx}" y2="${gy+gh+11}" stroke="#4a90d9" stroke-width="0.8" opacity=".8"/>
+      <text x="${ox+offPx/2}" y="${gy+gh+20}" text-anchor="middle" fill="#4a90d9" font-size="7" font-family="IBM Plex Mono,monospace" opacity=".85">${offX}</text>`;
     }
   }
 
