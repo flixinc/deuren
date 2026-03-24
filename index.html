@@ -2,6 +2,7 @@
   ╔══════════════════════════════════════════════════════════════╗
   ║  COMPIER — Deuren Inmeet Tool                               ║
   ╠══════════════════════════════════════════════════════════════╣
+  ║  v1.4  2026-03-24  Afdruk: deurschets paginavullend (200mm) ║
   ║  v1.3  2026-03-24  Ververs-knop op projectkiezer en         ║
   ║                    deuren-lijst toegevoegd                   ║
   ║  v1.2  2026-03-24  iOS portret: tekening verborgen,         ║
@@ -1149,7 +1150,7 @@ window.addEventListener('DOMContentLoaded',init);
 @media print {
   body > *:not(#print-frame) { display:none!important; }
   #print-frame { display:block!important; }
-  @page { size:A4 portrait; margin:12mm; }
+  @page { size:A4 portrait; margin:10mm 10mm 12mm; }
 }
 #print-frame { display:none; }
 .ppage {
@@ -1166,12 +1167,11 @@ window.addEventListener('DOMContentLoaded',init);
 .p-meta-adres { font-size:12px; color:#555; margin-top:2px; }
 .p-meta-datum { font-size:9px; color:#aaa; margin-top:2px; }
 .p-deur-titel { font-size:19px; font-weight:600; margin-bottom:8mm; }
-.p-body { display:flex; gap:6mm; }
-.p-svg-wrap { flex:1.6; display:flex; align-items:flex-start; justify-content:center; }
-.p-svg-wrap svg { width:100%; max-width:140mm; height:auto; background:white!important; }
-.p-svg-wrap svg text { }
+.p-body { display:flex; gap:8mm; align-items:flex-start; }
+.p-svg-wrap { flex:0 0 auto; display:flex; align-items:flex-start; justify-content:center; }
+.p-svg-wrap svg { height:200mm; width:auto; max-width:100mm; background:white!important; }
 @media print {
-  .p-svg-wrap svg { background:white!important; }
+  .p-svg-wrap svg { background:white!important; height:200mm; width:auto; }
 }
 .p-table-wrap { flex:1; }
 .p-section { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#999; margin:5mm 0 2mm; border-bottom:1px solid #eee; padding-bottom:1mm; }
