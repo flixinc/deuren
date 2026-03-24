@@ -2,6 +2,8 @@
   ╔══════════════════════════════════════════════════════════════╗
   ║  COMPIER — Deuren Inmeet Tool                               ║
   ╠══════════════════════════════════════════════════════════════╣
+  ║  v1.3  2026-03-24  Ververs-knop op projectkiezer en         ║
+  ║                    deuren-lijst toegevoegd                   ║
   ║  v1.2  2026-03-24  iOS portret: tekening verborgen,         ║
   ║                    sidebar + rechter paneel naast elkaar     ║
   ║  v1.1  2026-03-24  iOS responsive topbar: compact 52px,     ║
@@ -211,6 +213,9 @@ hr.div{border:none;border-top:1px solid var(--border);}
         <div class="project-id">Kies een project</div>
       </div>
     </div>
+    <div class="topbar-right">
+      <button id="refresh-picker-btn" onclick="refreshPicker(event)" title="Ververs projecten" style="background:none;border:none;cursor:pointer;padding:0 4px;color:var(--dim);font-size:18px;line-height:1;transition:color 0.15s;" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='var(--dim)'">↺</button>
+    </div>
   </div>
   <div class="picker-search-wrap">
     <input class="picker-search" id="picker-search" placeholder="Zoek op nummer of adres…" oninput="filterPicker()">
@@ -232,6 +237,7 @@ hr.div{border:none;border-top:1px solid var(--border);}
     </div>
     <div class="topbar-right">
       <div class="list-count" id="list-count"></div>
+      <button id="refresh-list-btn" onclick="refreshList(event)" title="Ververs deuren" style="background:none;border:none;cursor:pointer;padding:0 4px;color:var(--dim);font-size:18px;line-height:1;transition:color 0.15s;" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='var(--dim)'">↺</button>
     </div>
   </div>
   <div class="list-body" id="list-body"></div>
@@ -539,6 +545,28 @@ function saveSetup(){
 }
 
 // INIT
+async function refreshPicker(e){
+  const btn=e.currentTarget;
+  btn.style.color='var(--accent)';btn.style.transition='transform 0.5s ease,color 0.15s';btn.style.transform='rotate(360deg)';
+  setLoad(true);
+  try{
+    const data=await supa('projecten?status=in.(lopend,offerte)&order=nummer.asc');
+    S.allProjecten=data||[];
+    renderPicker(S.allProjecten);
+    G('picker-search').value='';
+  }catch(e){toast('Ververs mislukt','err');}
+  finally{setLoad(false);setTimeout(()=>{btn.style.transform='';btn.style.color='';},600);}
+}
+async function refreshList(e){
+  const btn=e.currentTarget;
+  btn.style.color='var(--accent)';btn.style.transition='transform 0.5s ease,color 0.15s';btn.style.transform='rotate(360deg)';
+  setLoad(true);
+  try{
+    S.deuren=(await supa(`deuren?m_nummer=eq.${encodeURIComponent(S.mNummer)}&order=deur_nr.asc`))||[];
+    renderList();
+  }catch(e){toast('Ververs mislukt','err');}
+  finally{setLoad(false);setTimeout(()=>{btn.style.transform='';btn.style.color='';},600);}
+}
 async function init(){
   const params=new URLSearchParams(location.search);
   S.mNummer=params.get('m');
