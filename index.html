@@ -1,3 +1,14 @@
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  COMPIER — Deuren Inmeet Tool                               ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  v1.2  2026-03-24  iOS portret: tekening verborgen,         ║
+  ║                    sidebar + rechter paneel naast elkaar     ║
+  ║  v1.1  2026-03-24  iOS responsive topbar: compact 52px,     ║
+  ║                    print-knop zichtbaar op small screens     ║
+  ║  v1.0  2026-03-24  Initiële versie                          ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -39,6 +50,22 @@ body{background:var(--bg);font-family:'IBM Plex Sans',sans-serif;color:var(--tex
 .save-btn:disabled{opacity:.5;cursor:not-allowed;}
 .deur-naam-input{background:none;border:none;outline:none;font-size:14px;font-weight:600;color:var(--text);font-family:'IBM Plex Sans',sans-serif;width:180px;border-bottom:1px solid transparent;transition:border-color .15s;letter-spacing:-.01em;}
 .deur-naam-input:focus{border-bottom-color:var(--accent);}
+
+/* iOS / kleine schermen — portret */
+@media (max-width:480px){
+  /* Topbar compact */
+  .topbar{height:52px;padding:0 10px;}
+  .deur-naam-input{width:100px;font-size:13px;}
+  .project-id{display:none;}
+  .status-chip{display:none;}
+  .topbar-left{gap:7px;}
+  .topbar-right{gap:6px;}
+  .save-btn{padding:5px 12px;font-size:11px;}
+  /* Tekening verbergen, beide panelen naast elkaar */
+  .canvas-area{display:none;}
+  .sidebar{width:50%;min-width:0;}
+  .right-panel{width:50%;min-width:0;}
+}
 
 /* SCREENS */
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;}
