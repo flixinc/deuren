@@ -2,7 +2,8 @@
   ╔══════════════════════════════════════════════════════════════╗
   ║  COMPIER — Deuren Inmeet Tool                               ║
   ╠══════════════════════════════════════════════════════════════╣
-  ║  v1.5  2026-03-24  iOS afdrukblokkering omzeild via iframe  ║
+  ║  v1.5  2026-03-24  iOS print: iframe met XMLSerializer,     ║
+  ║                    SVG-serialisatie en font preload         ║
   ║  v1.4  2026-03-24  Afdruk: deurschets paginavullend (200mm) ║
   ║  v1.3  2026-03-24  Ververs-knop op projectkiezer en         ║
   ║                    deuren-lijst toegevoegd                   ║
@@ -1269,44 +1270,62 @@ function bouwMailBody(deuren){
   return body;
 }
 
+function buildPrintHTML(deuren){
+  // Serialiseer SVG-elementen correct (innerHTML verliest SVG-namespaces)
+  const xs=new XMLSerializer();
+  const pages=deuren.map((d,i)=>{
+    const page=buildPrintPage(d,i+1,deuren.length);
+    page.querySelectorAll('svg').forEach(svg=>{
+      const serialized=xs.serializeToString(svg);
+      const wrap=document.createElement('div');
+      wrap.innerHTML=serialized;
+      svg.parentNode.replaceChild(wrap.firstElementChild,svg);
+    });
+    return page.outerHTML;
+  }).join('');
+
+  // Haal de print-stijlen op uit het style-element dat .ppage bevat
+  const printStyle=Array.from(document.querySelectorAll('style'))
+    .find(s=>s.textContent.includes('.ppage'));
+  const css=printStyle?printStyle.textContent:'';
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+      body{background:#fff;font-family:'IBM Plex Sans',sans-serif;}
+      @page{size:A4 portrait;margin:10mm 10mm 12mm;}
+      ${css}
+    </style>
+  </head><body>${pages}</body></html>`;
+}
+
 function doPrint(){
   const alleDeuren=document.getElementById('print-overlay')._alleDeuren;
   const deuren=(alleDeuren?S.deuren:[S.activeDeur]).filter(Boolean);
-
-  // Verzamel print-CSS uit de pagina
-  const printCSS=Array.from(document.styleSheets).reduce((acc,ss)=>{
-    try{return acc+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch(e){return acc;}
-  },'');
-
-  // Bouw pagina's als HTML string
-  const tmp=document.createElement('div');
-  deuren.forEach((d,i)=>tmp.appendChild(buildPrintPage(d,i+1,deuren.length)));
-  const pagesHTML=tmp.innerHTML;
-
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <style>
-      ${printCSS}
-      body{margin:0;background:#fff;}
-      @page{size:A4 portrait;margin:10mm 10mm 12mm;}
-    </style>
-  </head><body>${pagesHTML}<script>window.onload=function(){window.print();}<\/script></body></html>`;
-
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
   if(isIOS){
-    // iOS PWA: schrijf naar iframe — bypassed de blokkering
+    // iOS PWA: iframe + setTimeout zodat render klaar is voor print
     let pf=document.getElementById('ios-print-frame');
-    if(!pf){
-      pf=document.createElement('iframe');
-      pf.id='ios-print-frame';
-      pf.style.cssText='position:fixed;left:-9999px;top:-9999px;width:210mm;height:297mm;border:none;';
-      document.body.appendChild(pf);
-    }
+    if(pf) pf.remove();
+    pf=document.createElement('iframe');
+    pf.id='ios-print-frame';
+    pf.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;border:none;z-index:9999;background:#fff;';
+    document.body.appendChild(pf);
+    const html=buildPrintHTML(deuren);
     pf.contentDocument.open();
     pf.contentDocument.write(html);
     pf.contentDocument.close();
+    // Wacht tot fonts en SVG geladen zijn, dan print
+    setTimeout(()=>{
+      pf.contentWindow.focus();
+      pf.contentWindow.print();
+      // Verberg iframe na afdrukdialoog
+      setTimeout(()=>pf.remove(),1500);
+    },600);
   } else {
-    // Desktop
+    // Desktop: verberg alles, toon print-frame, print, herstel
     const frame=document.getElementById('print-frame');
     frame.innerHTML='';
     deuren.forEach((d,i)=>frame.appendChild(buildPrintPage(d,i+1,deuren.length)));
